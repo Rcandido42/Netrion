@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ProjectManager } from './storage/ProjectManager';
-import type { NetrionProjectData } from './storage/ProjectSchema';
+import type { SerializedDevice, SerializedConnection, NetrionProjectData } from './storage/ProjectSchema';
+import { createDefaultDevice, type DeviceType } from './core/models/Device';
 import { MenuBar } from './ui/shell/MenuBar';
 import { ActionToolbar } from './ui/shell/ActionToolbar';
 import { StatusBar } from './ui/shell/StatusBar';
+import { NetworkCanvas } from './ui/canvas/NetworkCanvas';
+import { InspectorPanel } from './ui/panels/InspectorPanel';
 import { ShortcutsDialog } from './ui/dialogs/ShortcutsDialog';
 import { AboutDialog } from './ui/dialogs/AboutDialog';
 import './App.css';
@@ -18,6 +21,13 @@ export function App() {
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1);
   const [simulationTick, setSimulationTick] = useState<number>(0);
+
+  // Selection states
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
+
+  // Connecting cable state
+  const [connectingSource, setConnectingSource] = useState<{ deviceId: string; interfaceId: string } | null>(null);
 
   // Viewport states
   const [zoom, setZoom] = useState<number>(1);
@@ -36,6 +46,12 @@ export function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  const syncProjectChanges = useCallback((updated: Partial<NetrionProjectData>) => {
+    const next = projectManagerRef.current.updateProjectData(updated);
+    setProject({ ...next });
+    setIsDirty(true);
+  }, []);
+
   // Action handlers
   const handleNewProject = useCallback(() => {
     if (isDirty) {
@@ -45,6 +61,8 @@ export function App() {
     const fresh = projectManagerRef.current.newProject();
     setProject({ ...fresh });
     setIsDirty(false);
+    setSelectedDeviceId(null);
+    setSelectedConnectionId(null);
     showNotification('New project created');
   }, [isDirty, showNotification]);
 
@@ -54,6 +72,8 @@ export function App() {
       if (result) {
         setProject({ ...result.project });
         setIsDirty(false);
+        setSelectedDeviceId(null);
+        setSelectedConnectionId(null);
         showNotification(`Project loaded: ${result.project.name}`);
       }
     } catch (err: unknown) {
@@ -92,6 +112,8 @@ export function App() {
         const imported = await projectManagerRef.current.importJSON(text);
         setProject({ ...imported });
         setIsDirty(false);
+        setSelectedDeviceId(null);
+        setSelectedConnectionId(null);
         showNotification(`Topology imported: ${imported.name}`);
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -100,6 +122,142 @@ export function App() {
     };
     input.click();
   }, [showNotification]);
+
+  // Topology Manipulation Handlers
+  const handleAddDevice = useCallback((type: DeviceType, x: number, y: number) => {
+    const newDevice = createDefaultDevice(type, x, y);
+    const updatedDevices = [...project.devices, newDevice];
+    syncProjectChanges({ devices: updatedDevices });
+    setSelectedDeviceId(newDevice.id);
+    setSelectedConnectionId(null);
+    setActiveTool('select');
+    showNotification(`Added ${newDevice.name} to network`);
+  }, [project.devices, syncProjectChanges, showNotification]);
+
+  const handleMoveDevice = useCallback((deviceId: string, x: number, y: number) => {
+    const updatedDevices = project.devices.map((d) => (d.id === deviceId ? { ...d, x, y } : d));
+    syncProjectChanges({ devices: updatedDevices });
+  }, [project.devices, syncProjectChanges]);
+
+  const handleUpdateDevice = useCallback((updated: SerializedDevice) => {
+    const updatedDevices = project.devices.map((d) => (d.id === updated.id ? updated : d));
+    syncProjectChanges({ devices: updatedDevices });
+  }, [project.devices, syncProjectChanges]);
+
+  const handleDeleteDevice = useCallback((deviceId: string) => {
+    const dev = project.devices.find((d) => d.id === deviceId);
+    if (!dev) return;
+
+    // Remove device and all associated connections
+    const remainingDevices = project.devices.filter((d) => d.id !== deviceId);
+    const remainingConnections = project.connections.filter(
+      (c) => c.sourceDeviceId !== deviceId && c.targetDeviceId !== deviceId
+    );
+
+    // Unlink interfaces in remaining devices
+    const cleanedDevices = remainingDevices.map((d) => ({
+      ...d,
+      interfaces: d.interfaces.map((i) =>
+        remainingConnections.some((c) => c.id === i.connectedToConnectionId)
+          ? i
+          : { ...i, connectedToConnectionId: null }
+      ),
+    }));
+
+    syncProjectChanges({ devices: cleanedDevices, connections: remainingConnections });
+    setSelectedDeviceId(null);
+    showNotification(`Deleted ${dev.name}`);
+  }, [project.devices, project.connections, syncProjectChanges, showNotification]);
+
+  // Connection Manipulation Handlers
+  const handleUpdateConnection = useCallback((updated: SerializedConnection) => {
+    const updatedConns = project.connections.map((c) => (c.id === updated.id ? updated : c));
+    syncProjectChanges({ connections: updatedConns });
+  }, [project.connections, syncProjectChanges]);
+
+  const handleDeleteConnection = useCallback((connectionId: string) => {
+    const remainingConns = project.connections.filter((c) => c.id !== connectionId);
+
+    // Unlink interfaces
+    const updatedDevices = project.devices.map((d) => ({
+      ...d,
+      interfaces: d.interfaces.map((i) =>
+        i.connectedToConnectionId === connectionId ? { ...i, connectedToConnectionId: null } : i
+      ),
+    }));
+
+    syncProjectChanges({ devices: updatedDevices, connections: remainingConns });
+    setSelectedConnectionId(null);
+    showNotification('Cable connection removed');
+  }, [project.connections, project.devices, syncProjectChanges, showNotification]);
+
+  // Cable Connection Flow (Port click)
+  const handlePortClick = useCallback((deviceId: string, interfaceId: string) => {
+    if (!connectingSource) {
+      // First port clicked: set as source
+      setConnectingSource({ deviceId, interfaceId });
+      setActiveTool('cable');
+      showNotification(`Link started from ${deviceId}. Click target port to connect.`);
+      return;
+    }
+
+    // Second port clicked: complete link
+    if (connectingSource.deviceId === deviceId && connectingSource.interfaceId === interfaceId) {
+      // Clicked same port, cancel
+      setConnectingSource(null);
+      setActiveTool('select');
+      showNotification('Cable connection cancelled');
+      return;
+    }
+
+    if (connectingSource.deviceId === deviceId) {
+      // Cannot connect device to itself
+      showNotification('Cannot link two ports on the same device');
+      return;
+    }
+
+    const connId = `conn_${Date.now()}`;
+    const newConn: SerializedConnection = {
+      id: connId,
+      sourceDeviceId: connectingSource.deviceId,
+      sourceInterfaceId: connectingSource.interfaceId,
+      targetDeviceId: deviceId,
+      targetInterfaceId: interfaceId,
+      type: 'copper',
+      status: 'up',
+      bandwidthMbps: 100,
+      latencyMs: 1,
+    };
+
+    // Update interfaces with connection ID
+    const updatedDevices = project.devices.map((d) => {
+      if (d.id === connectingSource.deviceId) {
+        return {
+          ...d,
+          interfaces: d.interfaces.map((i) =>
+            i.id === connectingSource.interfaceId ? { ...i, connectedToConnectionId: connId } : i
+          ),
+        };
+      }
+      if (d.id === deviceId) {
+        return {
+          ...d,
+          interfaces: d.interfaces.map((i) =>
+            i.id === interfaceId ? { ...i, connectedToConnectionId: connId } : i
+          ),
+        };
+      }
+      return d;
+    });
+
+    const updatedConns = [...project.connections, newConn];
+    syncProjectChanges({ devices: updatedDevices, connections: updatedConns });
+
+    setConnectingSource(null);
+    setActiveTool('select');
+    setSelectedConnectionId(connId);
+    showNotification('Cable link established (Link State: UP)');
+  }, [connectingSource, project.devices, project.connections, syncProjectChanges, showNotification]);
 
   // Dispatch Menu Actions
   const handleMenuAction = useCallback((action: string) => {
@@ -121,6 +279,10 @@ export function App() {
         break;
       case 'import-project':
         handleImportProject();
+        break;
+      case 'delete-selected':
+        if (selectedDeviceId) handleDeleteDevice(selectedDeviceId);
+        else if (selectedConnectionId) handleDeleteConnection(selectedConnectionId);
         break;
       case 'toggle-simulation':
         setIsPaused((p) => !p);
@@ -169,6 +331,10 @@ export function App() {
     handleSaveProject,
     handleExportProject,
     handleImportProject,
+    handleDeleteDevice,
+    handleDeleteConnection,
+    selectedDeviceId,
+    selectedConnectionId,
     showNotification,
     simulationTick,
   ]);
@@ -186,7 +352,6 @@ export function App() {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept shortcuts when typing in an input or textarea
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
@@ -200,6 +365,14 @@ export function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewProject();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedDeviceId) {
+          e.preventDefault();
+          handleDeleteDevice(selectedDeviceId);
+        } else if (selectedConnectionId) {
+          e.preventDefault();
+          handleDeleteConnection(selectedConnectionId);
+        }
       } else if (e.code === 'Space') {
         e.preventDefault();
         setIsPaused((p) => !p);
@@ -223,12 +396,32 @@ export function App() {
         setZoom(1);
       } else if (e.key === 'Escape') {
         setActiveTool('select');
+        setConnectingSource(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSaveProject, handleOpenProject, handleNewProject]);
+  }, [
+    handleSaveProject,
+    handleOpenProject,
+    handleNewProject,
+    handleDeleteDevice,
+    handleDeleteConnection,
+    selectedDeviceId,
+    selectedConnectionId,
+  ]);
+
+  const selectedDevice = project.devices.find((d) => d.id === selectedDeviceId) || null;
+  const selectedConnection = project.connections.find((c) => c.id === selectedConnectionId) || null;
+
+  const selectedSummary = selectedDevice
+    ? `${selectedDevice.name} [${selectedDevice.type.toUpperCase()}] ${
+        selectedDevice.interfaces[0]?.ip ? `(${selectedDevice.interfaces[0].ip})` : ''
+      }`
+    : selectedConnection
+    ? `LINK: ${selectedConnection.id} [${selectedConnection.status.toUpperCase()}]`
+    : null;
 
   return (
     <div className="netrion-app">
@@ -255,7 +448,10 @@ export function App() {
           showNotification('Simulation reset');
         }}
         onChangeSpeed={(s) => setSimulationSpeed(s)}
-        onSelectTool={(t) => setActiveTool(t)}
+        onSelectTool={(t) => {
+          setActiveTool(t);
+          if (t !== 'cable') setConnectingSource(null);
+        }}
         onZoomIn={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))}
         onZoomOut={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}
         onZoomReset={() => setZoom(1)}
@@ -267,25 +463,27 @@ export function App() {
       {/* Primary Workspace Area */}
       <main className="netrion-workspace">
         <div className="netrion-center-area">
-          {/* Canvas workspace - Scaffolding for Phase 2 */}
-          <div
-            className="netrion-canvas-placeholder"
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'var(--bg-canvas)',
-              backgroundImage: 'radial-gradient(var(--border-subtle) 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-xs)',
-              letterSpacing: '0.05em',
+          {/* Interactive Network Canvas */}
+          <NetworkCanvas
+            devices={project.devices}
+            connections={project.connections}
+            selectedDeviceId={selectedDeviceId}
+            selectedConnectionId={selectedConnectionId}
+            activeTool={activeTool}
+            zoom={zoom}
+            connectingSource={connectingSource}
+            onSelectDevice={(id) => {
+              setSelectedDeviceId(id);
+              if (id) setSelectedConnectionId(null);
             }}
-          >
-            [NETWORK WORKSPACE CANVAS • PHASE 1 SHELL ACTIVE]
-          </div>
+            onSelectConnection={(id) => {
+              setSelectedConnectionId(id);
+              if (id) setSelectedDeviceId(null);
+            }}
+            onMoveDevice={handleMoveDevice}
+            onAddDevice={handleAddDevice}
+            onPortClick={handlePortClick}
+          />
 
           {/* Bottom Console Area */}
           {isConsoleOpen && (
@@ -303,14 +501,27 @@ export function App() {
               }}
             >
               <div style={{ color: 'var(--color-link-up)', marginBottom: '4px' }}>
-                NETRION SIMULATION ENGINE INITIALIZED [DESCRETE EVENT MODEL]
+                NETRION SIMULATION ENGINE INITIALIZED [DISCRETE EVENT MODEL]
               </div>
               <div style={{ color: 'var(--text-muted)' }}>
-                Ready. Select a tool or device to build network topology.
+                {project.devices.length === 0
+                  ? 'Select PC, Switch, Router or Server from toolbar to add devices to the canvas.'
+                  : `Active topology: ${project.devices.length} devices, ${project.connections.length} connections. Select a host to open terminal in Phase 6.`}
               </div>
             </div>
           )}
         </div>
+
+        {/* Right Inspector Panel */}
+        <InspectorPanel
+          selectedDevice={selectedDevice}
+          selectedConnection={selectedConnection}
+          devices={project.devices}
+          onUpdateDevice={handleUpdateDevice}
+          onDeleteDevice={handleDeleteDevice}
+          onUpdateConnection={handleUpdateConnection}
+          onDeleteConnection={handleDeleteConnection}
+        />
       </main>
 
       {/* Telemetry Status Bar */}
@@ -321,7 +532,7 @@ export function App() {
         deviceCount={project.devices.length}
         connectionCount={project.connections.length}
         activePacketCount={0}
-        selectedDeviceSummary={null}
+        selectedDeviceSummary={selectedSummary}
         zoom={zoom}
         statusNotification={statusNotification}
       />

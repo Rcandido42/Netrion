@@ -1,0 +1,236 @@
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import type { SerializedDevice, SerializedConnection } from '../../storage/ProjectSchema';
+import { NetworkNode } from './NetworkNode';
+import './NetworkCanvas.css';
+
+export interface NetworkCanvasProps {
+  devices: SerializedDevice[];
+  connections: SerializedConnection[];
+  selectedDeviceId: string | null;
+  selectedConnectionId: string | null;
+  activeTool: 'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
+  zoom: number;
+  connectingSource: { deviceId: string; interfaceId: string } | null;
+  onSelectDevice: (deviceId: string | null) => void;
+  onSelectConnection: (connectionId: string | null) => void;
+  onMoveDevice: (deviceId: string, x: number, y: number) => void;
+  onAddDevice: (type: 'pc' | 'switch' | 'router' | 'server', x: number, y: number) => void;
+  onPortClick: (deviceId: string, interfaceId: string) => void;
+  onZoomChange?: (newZoom: number) => void;
+}
+
+export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
+  devices,
+  connections,
+  selectedDeviceId,
+  selectedConnectionId,
+  activeTool,
+  zoom,
+  connectingSource,
+  onSelectDevice,
+  onSelectConnection,
+  onMoveDevice,
+  onAddDevice,
+  onPortClick,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Dragging device state
+  const draggingDeviceRef = useRef<{
+    deviceId: string;
+    startX: number;
+    startY: number;
+    initialDevX: number;
+    initialDevY: number;
+  } | null>(null);
+
+  // Convert mouse screen coordinates to canvas space
+  const screenToCanvas = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!containerRef.current) return { x: 0, y: 0 };
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (clientX - rect.left - pan.x) / zoom;
+      const y = (clientY - rect.top - pan.y) / zoom;
+      return { x: Math.round(x), y: Math.round(y) };
+    },
+    [pan, zoom]
+  );
+
+  // Handle canvas background mouse down (Pan or Add Device)
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    // Middle click or space key: pan canvas
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      e.preventDefault();
+      setIsPanning(true);
+      panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      return;
+    }
+
+    if (e.button === 0) {
+      if (activeTool.startsWith('add-')) {
+        const type = activeTool.replace('add-', '') as 'pc' | 'switch' | 'router' | 'server';
+        const coords = screenToCanvas(e.clientX, e.clientY);
+        onAddDevice(type, coords.x - 74, coords.y - 35); // Center device on click
+        return;
+      }
+
+      // If clicked empty canvas, clear selections
+      onSelectDevice(null);
+      onSelectConnection(null);
+    }
+  };
+
+  // Node mouse down: start dragging
+  const handleNodeMouseDown = (e: React.MouseEvent, deviceId: string) => {
+    if (e.button !== 0) return; // Only left click drags
+    e.stopPropagation();
+
+    const dev = devices.find((d) => d.id === deviceId);
+    if (!dev) return;
+
+    onSelectDevice(deviceId);
+
+    draggingDeviceRef.current = {
+      deviceId,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialDevX: dev.x,
+      initialDevY: dev.y,
+    };
+  };
+
+  // Global mouse move & up listeners for drag & pan
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isPanning) {
+        setPan({
+          x: e.clientX - panStartRef.current.x,
+          y: e.clientY - panStartRef.current.y,
+        });
+        return;
+      }
+
+      if (draggingDeviceRef.current) {
+        const deltaX = (e.clientX - draggingDeviceRef.current.startX) / zoom;
+        const deltaY = (e.clientY - draggingDeviceRef.current.startY) / zoom;
+        const newX = Math.round(draggingDeviceRef.current.initialDevX + deltaX);
+        const newY = Math.round(draggingDeviceRef.current.initialDevY + deltaY);
+
+        onMoveDevice(draggingDeviceRef.current.deviceId, newX, newY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsPanning(false);
+      draggingDeviceRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isPanning, onMoveDevice, zoom]);
+
+  // Compute cable line coordinates for each connection
+  const getConnectionCoordinates = (conn: SerializedConnection) => {
+    const sourceDev = devices.find((d) => d.id === conn.sourceDeviceId);
+    const targetDev = devices.find((d) => d.id === conn.targetDeviceId);
+    if (!sourceDev || !targetDev) return null;
+
+    // Node center coordinates
+    const sx = sourceDev.x + 74;
+    const sy = sourceDev.y + 40;
+    const tx = targetDev.x + 74;
+    const ty = targetDev.y + 40;
+
+    return { sx, sy, tx, ty };
+  };
+
+  return (
+    <div
+      className={`netrion-canvas-viewport ${isPanning ? 'panning' : ''} ${activeTool.startsWith('add-') ? 'crosshair' : ''}`}
+      ref={containerRef}
+      onMouseDown={handleCanvasMouseDown}
+    >
+      <div
+        className="canvas-transform-layer"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: '0 0',
+        }}
+      >
+        {/* SVG Cable Connections Layer */}
+        <svg className="connections-svg-layer" width="10000" height="10000">
+          {connections.map((conn) => {
+            const coords = getConnectionCoordinates(conn);
+            if (!coords) return null;
+            const isSelected = selectedConnectionId === conn.id;
+
+            return (
+              <g
+                key={conn.id}
+                className={`cable-group ${isSelected ? 'selected' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectConnection(conn.id);
+                }}
+              >
+                {/* Glow/Hover Hitbox Area */}
+                <line
+                  x1={coords.sx}
+                  y1={coords.sy}
+                  x2={coords.tx}
+                  y2={coords.ty}
+                  className="cable-hitbox"
+                />
+                {/* Visual Physical Cable */}
+                <line
+                  x1={coords.sx}
+                  y1={coords.sy}
+                  x2={coords.tx}
+                  y2={coords.ty}
+                  className={`cable-line ${conn.status === 'up' ? 'status-up' : 'status-down'}`}
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Nodes Layer */}
+        {devices.map((device) => (
+          <NetworkNode
+            key={device.id}
+            device={device}
+            isSelected={selectedDeviceId === device.id}
+            isConnectingSource={connectingSource?.deviceId === device.id}
+            onSelect={(_e, id) => onSelectDevice(id)}
+            onMouseDown={handleNodeMouseDown}
+            onPortClick={(_e, devId, ifId) => onPortClick(devId, ifId)}
+          />
+        ))}
+      </div>
+
+      {/* Floating Canvas Quick Info */}
+      <div className="canvas-overlay-hints">
+        {connectingSource ? (
+          <span className="hint-pill warning">
+            CABLE TOOL ACTIVE: Click destination device port to link
+          </span>
+        ) : activeTool.startsWith('add-') ? (
+          <span className="hint-pill">
+            Click on canvas to place {activeTool.replace('add-', '').toUpperCase()}
+          </span>
+        ) : (
+          <span className="hint-subtle mono-numbers">
+            {devices.length} Nodes • Alt+Drag to Pan
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
