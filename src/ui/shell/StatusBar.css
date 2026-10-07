@@ -1,0 +1,101 @@
+.netrion-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  background-color: var(--bg-panel-header);
+  border-top: 1px solid var(--border-subtle);
+  padding: 0 10px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  user-select: none;
+  font-family: var(--font-sans);
+}
+
+.statusbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.status-pill.running {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--color-link-up);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.status-pill.running .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-link-up);
+  box-shadow: 0 0 6px var(--color-link-up);
+}
+
+.status-pill.paused {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--color-warning-amber);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+.status-pill.paused .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-warning-amber);
+}
+
+.status-metric {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-metric strong {
+  color: var(--text-primary);
+}
+
+.status-separator {
+  color: var(--border-muted);
+  font-size: 10px;
+}
+
+.status-notification {
+  color: var(--color-accent-blue);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.status-selection {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.status-idle {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.runtime-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+}
