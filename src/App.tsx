@@ -2,13 +2,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ProjectManager } from './storage/ProjectManager';
 import type { SerializedDevice, SerializedConnection, NetrionProjectData } from './storage/ProjectSchema';
 import { createDefaultDevice, type DeviceType } from './core/models/Device';
+import {
+  NetworkSimulationEngine,
+  type SimulationEvent,
+  type InFlightFrame,
+} from './core/engine/NetworkSimulationEngine';
+import type { EthernetFrame } from './core/protocols/Ethernet';
+import type { ChallengeScenario } from './challenges/types';
 import { MenuBar } from './ui/shell/MenuBar';
 import { ActionToolbar } from './ui/shell/ActionToolbar';
 import { StatusBar } from './ui/shell/StatusBar';
 import { NetworkCanvas } from './ui/canvas/NetworkCanvas';
 import { InspectorPanel } from './ui/panels/InspectorPanel';
+import { BottomConsole } from './ui/panels/BottomConsole';
 import { ShortcutsDialog } from './ui/dialogs/ShortcutsDialog';
 import { AboutDialog } from './ui/dialogs/AboutDialog';
+import { ChallengeDialog } from './ui/dialogs/ChallengeDialog';
 import './App.css';
 
 export function App() {
@@ -16,25 +25,40 @@ export function App() {
   const [project, setProject] = useState<NetrionProjectData>(() => projectManagerRef.current.getProject());
   const [isDirty, setIsDirty] = useState<boolean>(() => projectManagerRef.current.getIsDirty());
 
-  // Tool & Simulation states
-  const [activeTool, setActiveTool] = useState<'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server'>('select');
+  // Simulation Engine reference & state
+  const engineRef = useRef<NetworkSimulationEngine>(
+    new NetworkSimulationEngine(project.devices, project.connections)
+  );
+  const [inFlightFrames, setInFlightFrames] = useState<InFlightFrame[]>([]);
+  const [events, setEvents] = useState<SimulationEvent[]>([]);
+  const [inspectedFrame, setInspectedFrame] = useState<EthernetFrame | null>(null);
+
+  // Simulation loop controls
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1);
   const [simulationTick, setSimulationTick] = useState<number>(0);
 
-  // Selection states
+  // Active Tool state
+  const [activeTool, setActiveTool] = useState<
+    'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server'
+  >('select');
+
+  // Selections
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-
-  // Connecting cable state
   const [connectingSource, setConnectingSource] = useState<{ deviceId: string; interfaceId: string } | null>(null);
 
   // Viewport states
   const [zoom, setZoom] = useState<number>(1);
   const [isConsoleOpen, setIsConsoleOpen] = useState<boolean>(true);
-  const [statusNotification, setStatusNotification] = useState<string | null>('Project initialized');
+  const [statusNotification, setStatusNotification] = useState<string | null>('Netrion Simulator Ready');
 
-  // Dialog states
+  // Challenge Subsystem
+  const [activeChallenge, setActiveChallenge] = useState<ChallengeScenario | null>(null);
+  const [isChallengeCompleted, setIsChallengeCompleted] = useState<boolean>(false);
+  const [showChallenges, setShowChallenges] = useState<boolean>(false);
+
+  // Dialogs
   const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
   const [showAbout, setShowAbout] = useState<boolean>(false);
 
@@ -42,9 +66,61 @@ export function App() {
     setStatusNotification(msg);
     const timer = setTimeout(() => {
       setStatusNotification(null);
-    }, 4000);
+    }, 4500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Sync engine topology whenever project changes
+  useEffect(() => {
+    engineRef.current.updateTopology(project.devices, project.connections);
+  }, [project.devices, project.connections]);
+
+  // Subscribe to engine events
+  useEffect(() => {
+    const unsubscribe = engineRef.current.subscribe((evt) => {
+      setEvents((prev) => [...prev.slice(-150), evt]);
+      if (evt.type === 'FRAME_TRANSMIT' && evt.details) {
+        // Inspect newly transmitted frame
+        const frame = engineRef.current.getInFlightFrames().find((f) => f.frame.id === evt.details?.frameId)?.frame;
+        if (frame) setInspectedFrame(frame);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Main Simulation Loop (Tick)
+  useEffect(() => {
+    if (isPaused) return;
+
+    let lastTime = performance.now();
+    let animationFrameId: number;
+
+    const loop = (currentTime: number) => {
+      const deltaMs = Math.min(currentTime - lastTime, 100);
+      lastTime = currentTime;
+
+      engineRef.current.tick(deltaMs, simulationSpeed);
+      setInFlightFrames([...engineRef.current.getInFlightFrames()]);
+      setSimulationTick((t) => t + 1);
+
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    animationFrameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPaused, simulationSpeed]);
+
+  // Challenge Goal Evaluation
+  useEffect(() => {
+    if (activeChallenge && !isChallengeCompleted) {
+      const passed = activeChallenge.checkSuccess(engineRef.current, project);
+      if (passed) {
+        setIsChallengeCompleted(true);
+        showNotification(`🎉 ${activeChallenge.title} - COMPLETED!`);
+        setShowChallenges(true);
+      }
+    }
+  }, [activeChallenge, isChallengeCompleted, project, showNotification]);
 
   const syncProjectChanges = useCallback((updated: Partial<NetrionProjectData>) => {
     const next = projectManagerRef.current.updateProjectData(updated);
@@ -52,7 +128,7 @@ export function App() {
     setIsDirty(true);
   }, []);
 
-  // Action handlers
+  // Project IO Actions
   const handleNewProject = useCallback(() => {
     if (isDirty) {
       const confirmDiscard = window.confirm('Discard unsaved changes and create a new project?');
@@ -63,6 +139,8 @@ export function App() {
     setIsDirty(false);
     setSelectedDeviceId(null);
     setSelectedConnectionId(null);
+    setActiveChallenge(null);
+    setIsChallengeCompleted(false);
     showNotification('New project created');
   }, [isDirty, showNotification]);
 
@@ -74,6 +152,8 @@ export function App() {
         setIsDirty(false);
         setSelectedDeviceId(null);
         setSelectedConnectionId(null);
+        setActiveChallenge(null);
+        setIsChallengeCompleted(false);
         showNotification(`Project loaded: ${result.project.name}`);
       }
     } catch (err: unknown) {
@@ -123,7 +203,7 @@ export function App() {
     input.click();
   }, [showNotification]);
 
-  // Topology Manipulation Handlers
+  // Topology Manipulation
   const handleAddDevice = useCallback((type: DeviceType, x: number, y: number) => {
     const newDevice = createDefaultDevice(type, x, y);
     const updatedDevices = [...project.devices, newDevice];
@@ -148,13 +228,11 @@ export function App() {
     const dev = project.devices.find((d) => d.id === deviceId);
     if (!dev) return;
 
-    // Remove device and all associated connections
     const remainingDevices = project.devices.filter((d) => d.id !== deviceId);
     const remainingConnections = project.connections.filter(
       (c) => c.sourceDeviceId !== deviceId && c.targetDeviceId !== deviceId
     );
 
-    // Unlink interfaces in remaining devices
     const cleanedDevices = remainingDevices.map((d) => ({
       ...d,
       interfaces: d.interfaces.map((i) =>
@@ -169,7 +247,7 @@ export function App() {
     showNotification(`Deleted ${dev.name}`);
   }, [project.devices, project.connections, syncProjectChanges, showNotification]);
 
-  // Connection Manipulation Handlers
+  // Connections Manipulation
   const handleUpdateConnection = useCallback((updated: SerializedConnection) => {
     const updatedConns = project.connections.map((c) => (c.id === updated.id ? updated : c));
     syncProjectChanges({ connections: updatedConns });
@@ -177,8 +255,6 @@ export function App() {
 
   const handleDeleteConnection = useCallback((connectionId: string) => {
     const remainingConns = project.connections.filter((c) => c.id !== connectionId);
-
-    // Unlink interfaces
     const updatedDevices = project.devices.map((d) => ({
       ...d,
       interfaces: d.interfaces.map((i) =>
@@ -194,25 +270,21 @@ export function App() {
   // Cable Connection Flow (Port click)
   const handlePortClick = useCallback((deviceId: string, interfaceId: string) => {
     if (!connectingSource) {
-      // First port clicked: set as source
       setConnectingSource({ deviceId, interfaceId });
       setActiveTool('cable');
-      showNotification(`Link started from ${deviceId}. Click target port to connect.`);
+      showNotification(`Cable plugged into ${deviceId}. Click target port to complete link.`);
       return;
     }
 
-    // Second port clicked: complete link
     if (connectingSource.deviceId === deviceId && connectingSource.interfaceId === interfaceId) {
-      // Clicked same port, cancel
       setConnectingSource(null);
       setActiveTool('select');
-      showNotification('Cable connection cancelled');
+      showNotification('Cable link cancelled');
       return;
     }
 
     if (connectingSource.deviceId === deviceId) {
-      // Cannot connect device to itself
-      showNotification('Cannot link two ports on the same device');
+      showNotification('Cannot link two ports on the same physical unit');
       return;
     }
 
@@ -226,10 +298,9 @@ export function App() {
       type: 'copper',
       status: 'up',
       bandwidthMbps: 100,
-      latencyMs: 1,
+      latencyMs: 15,
     };
 
-    // Update interfaces with connection ID
     const updatedDevices = project.devices.map((d) => {
       if (d.id === connectingSource.deviceId) {
         return {
@@ -256,10 +327,23 @@ export function App() {
     setConnectingSource(null);
     setActiveTool('select');
     setSelectedConnectionId(connId);
-    showNotification('Cable link established (Link State: UP)');
+    showNotification('Physical link established (100 Mbps)');
   }, [connectingSource, project.devices, project.connections, syncProjectChanges, showNotification]);
 
-  // Dispatch Menu Actions
+  // Challenge Activation
+  const handleSelectChallenge = useCallback((scenario: ChallengeScenario) => {
+    const topology = scenario.initialTopology();
+    setProject({ ...topology });
+    projectManagerRef.current.updateProjectData(topology);
+    setActiveChallenge(scenario);
+    setIsChallengeCompleted(false);
+    setSelectedDeviceId(topology.devices[0]?.id || null);
+    setSelectedConnectionId(null);
+    setIsDirty(false);
+    showNotification(`Loaded ${scenario.title}`);
+  }, [showNotification]);
+
+  // Menu Actions
   const handleMenuAction = useCallback((action: string) => {
     switch (action) {
       case 'new-project':
@@ -288,8 +372,9 @@ export function App() {
         setIsPaused((p) => !p);
         break;
       case 'step-simulation':
+        engineRef.current.tick(20, simulationSpeed);
+        setInFlightFrames([...engineRef.current.getInFlightFrames()]);
         setSimulationTick((t) => t + 1);
-        showNotification(`Stepped to tick ${simulationTick + 1}`);
         break;
       case 'reset-simulation':
         setSimulationTick(0);
@@ -303,6 +388,13 @@ export function App() {
         break;
       case 'speed:2':
         setSimulationSpeed(2);
+        break;
+      case 'challenge:list':
+        setShowChallenges(true);
+        break;
+      case 'challenge:reset':
+        if (activeChallenge) handleSelectChallenge(activeChallenge);
+        else setShowChallenges(true);
         break;
       case 'zoom-in':
         setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)));
@@ -335,8 +427,10 @@ export function App() {
     handleDeleteConnection,
     selectedDeviceId,
     selectedConnectionId,
+    simulationSpeed,
     showNotification,
-    simulationTick,
+    activeChallenge,
+    handleSelectChallenge,
   ]);
 
   // Electron IPC bridge subscription
@@ -378,6 +472,8 @@ export function App() {
         setIsPaused((p) => !p);
       } else if (e.key === 'F8') {
         e.preventDefault();
+        engineRef.current.tick(20, simulationSpeed);
+        setInFlightFrames([...engineRef.current.getInFlightFrames()]);
         setSimulationTick((t) => t + 1);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
         e.preventDefault();
@@ -410,6 +506,7 @@ export function App() {
     handleDeleteConnection,
     selectedDeviceId,
     selectedConnectionId,
+    simulationSpeed,
   ]);
 
   const selectedDevice = project.devices.find((d) => d.id === selectedDeviceId) || null;
@@ -440,12 +537,13 @@ export function App() {
         isConsoleOpen={isConsoleOpen}
         onTogglePlay={() => setIsPaused((p) => !p)}
         onStep={() => {
+          engineRef.current.tick(20, simulationSpeed);
+          setInFlightFrames([...engineRef.current.getInFlightFrames()]);
           setSimulationTick((t) => t + 1);
-          showNotification(`Tick: ${simulationTick + 1}`);
         }}
         onReset={() => {
           setSimulationTick(0);
-          showNotification('Simulation reset');
+          showNotification('Simulation clock reset');
         }}
         onChangeSpeed={(s) => setSimulationSpeed(s)}
         onSelectTool={(t) => {
@@ -463,10 +561,11 @@ export function App() {
       {/* Primary Workspace Area */}
       <main className="netrion-workspace">
         <div className="netrion-center-area">
-          {/* Interactive Network Canvas */}
+          {/* Interactive Network Canvas with In-Flight Packets */}
           <NetworkCanvas
             devices={project.devices}
             connections={project.connections}
+            inFlightFrames={inFlightFrames}
             selectedDeviceId={selectedDeviceId}
             selectedConnectionId={selectedConnectionId}
             activeTool={activeTool}
@@ -480,36 +579,25 @@ export function App() {
               setSelectedConnectionId(id);
               if (id) setSelectedDeviceId(null);
             }}
+            onSelectFrame={(frame) => {
+              setInspectedFrame(frame);
+              setIsConsoleOpen(true);
+            }}
             onMoveDevice={handleMoveDevice}
             onAddDevice={handleAddDevice}
             onPortClick={handlePortClick}
           />
 
-          {/* Bottom Console Area */}
-          {isConsoleOpen && (
-            <div
-              className="netrion-bottom-console-placeholder"
-              style={{
-                height: '180px',
-                borderTop: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-panel)',
-                padding: '8px 12px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--text-secondary)',
-                overflowY: 'auto',
-              }}
-            >
-              <div style={{ color: 'var(--color-link-up)', marginBottom: '4px' }}>
-                NETRION SIMULATION ENGINE INITIALIZED [DISCRETE EVENT MODEL]
-              </div>
-              <div style={{ color: 'var(--text-muted)' }}>
-                {project.devices.length === 0
-                  ? 'Select PC, Switch, Router or Server from toolbar to add devices to the canvas.'
-                  : `Active topology: ${project.devices.length} devices, ${project.connections.length} connections. Select a host to open terminal in Phase 6.`}
-              </div>
-            </div>
-          )}
+          {/* Collapsible Bottom Console (Terminal / Event Bus / Packet Inspector) */}
+          <BottomConsole
+            isOpen={isConsoleOpen}
+            selectedDevice={selectedDevice}
+            engine={engineRef.current}
+            events={events}
+            inspectedFrame={inspectedFrame}
+            onToggleOpen={() => setIsConsoleOpen((c) => !c)}
+            onClearEvents={() => setEvents([])}
+          />
         </div>
 
         {/* Right Inspector Panel */}
@@ -531,15 +619,22 @@ export function App() {
         simulationSpeed={simulationSpeed}
         deviceCount={project.devices.length}
         connectionCount={project.connections.length}
-        activePacketCount={0}
+        activePacketCount={inFlightFrames.length}
         selectedDeviceSummary={selectedSummary}
         zoom={zoom}
         statusNotification={statusNotification}
       />
 
-      {/* Modals */}
+      {/* Modals & Dialogs */}
       <ShortcutsDialog isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AboutDialog isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <ChallengeDialog
+        isOpen={showChallenges}
+        activeChallengeId={activeChallenge?.id || null}
+        isCompleted={isChallengeCompleted}
+        onClose={() => setShowChallenges(false)}
+        onSelectChallenge={handleSelectChallenge}
+      />
     </div>
   );
 }

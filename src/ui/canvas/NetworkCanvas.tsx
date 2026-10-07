@@ -1,11 +1,14 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { SerializedDevice, SerializedConnection } from '../../storage/ProjectSchema';
+import type { InFlightFrame } from '../../core/engine/NetworkSimulationEngine';
+import type { EthernetFrame } from '../../core/protocols/Ethernet';
 import { NetworkNode } from './NetworkNode';
 import './NetworkCanvas.css';
 
 export interface NetworkCanvasProps {
   devices: SerializedDevice[];
   connections: SerializedConnection[];
+  inFlightFrames: InFlightFrame[];
   selectedDeviceId: string | null;
   selectedConnectionId: string | null;
   activeTool: 'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
@@ -13,6 +16,7 @@ export interface NetworkCanvasProps {
   connectingSource: { deviceId: string; interfaceId: string } | null;
   onSelectDevice: (deviceId: string | null) => void;
   onSelectConnection: (connectionId: string | null) => void;
+  onSelectFrame?: (frame: EthernetFrame) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
   onAddDevice: (type: 'pc' | 'switch' | 'router' | 'server', x: number, y: number) => void;
   onPortClick: (deviceId: string, interfaceId: string) => void;
@@ -22,6 +26,7 @@ export interface NetworkCanvasProps {
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   devices,
   connections,
+  inFlightFrames,
   selectedDeviceId,
   selectedConnectionId,
   activeTool,
@@ -29,6 +34,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   connectingSource,
   onSelectDevice,
   onSelectConnection,
+  onSelectFrame,
   onMoveDevice,
   onAddDevice,
   onPortClick,
@@ -196,6 +202,56 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
                   y2={coords.ty}
                   className={`cable-line ${conn.status === 'up' ? 'status-up' : 'status-down'}`}
                 />
+              </g>
+            );
+          })}
+          {/* In-Flight Packet Particles Layer */}
+          {inFlightFrames.map((flight) => {
+            const srcDev = devices.find((d) => d.id === flight.fromDeviceId);
+            const tgtDev = devices.find((d) => d.id === flight.toDeviceId);
+            if (!srcDev || !tgtDev) return null;
+
+            const sx = srcDev.x + 74;
+            const sy = srcDev.y + 40;
+            const tx = tgtDev.x + 74;
+            const ty = tgtDev.y + 40;
+
+            const px = sx + (tx - sx) * flight.progress;
+            const py = sy + (ty - sy) * flight.progress;
+
+            const isArp = flight.frame.etherType === 'ARP';
+            const color = isArp ? '#bc8cff' : '#58a6ff';
+
+            return (
+              <g
+                key={flight.id}
+                className="packet-particle-group"
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectFrame?.(flight.frame);
+                }}
+              >
+                <circle
+                  cx={px}
+                  cy={py}
+                  r="9"
+                  fill={color}
+                  stroke="#090d12"
+                  strokeWidth="2"
+                  filter="drop-shadow(0 0 4px rgba(0,0,0,0.8))"
+                />
+                <text
+                  x={px}
+                  y={py + 3}
+                  fill="#090d12"
+                  fontSize="7"
+                  fontFamily="var(--font-mono)"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {isArp ? 'ARP' : 'IP'}
+                </text>
               </g>
             );
           })}

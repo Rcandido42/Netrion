@@ -1,0 +1,97 @@
+.netrion-packet-inspector {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-app);
+  padding: 8px 12px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.netrion-packet-inspector.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.inspector-placeholder-msg {
+  text-align: center;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.packet-layers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer-block {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.layer-block.l2 {
+  border-left: 3px solid var(--color-accent-blue);
+}
+
+.layer-block.l3-arp {
+  border-left: 3px solid var(--color-arp-purple);
+}
+
+.layer-block.l3-ip {
+  border-left: 3px solid var(--color-router-orange);
+}
+
+.layer-block.l4 {
+  border-left: 3px solid var(--color-link-up);
+}
+
+.layer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.layer-name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.layer-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.layer-fields {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-key {
+  color: var(--text-muted);
+  width: 140px;
+}
+
+.field-val {
+  color: var(--text-primary);
+  flex: 1;
+}

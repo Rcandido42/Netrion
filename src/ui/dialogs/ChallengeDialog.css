@@ -1,0 +1,232 @@
+.challenge-dialog {
+  max-width: 780px;
+  width: 90%;
+  height: 520px;
+}
+
+.challenge-dialog-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.challenge-sidebar {
+  width: 250px;
+  background-color: var(--bg-canvas);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.challenge-nav-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.challenge-nav-item {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 3px solid transparent;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.1s ease;
+}
+
+.challenge-nav-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.challenge-nav-item.active {
+  background-color: var(--bg-panel);
+  border-left-color: var(--color-accent-blue);
+}
+
+.ch-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ch-item-cat {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.ch-item-diff {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.ch-item-diff.beginner {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--color-link-up);
+}
+
+.ch-item-diff.intermediate {
+  background: rgba(210, 153, 34, 0.2);
+  color: var(--color-warning-amber);
+}
+
+.ch-item-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.challenge-details {
+  flex: 1;
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.details-cat {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-accent-blue);
+  letter-spacing: 0.05em;
+}
+
+.details-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.completion-card {
+  background: rgba(63, 185, 80, 0.1);
+  border: 1px solid var(--color-link-up);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+}
+
+.completion-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-link-up);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.completion-text {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.briefing-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.objectives-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.objectives-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.obj-bullet {
+  color: var(--color-accent-blue);
+}
+
+.hint-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hint-toggle-btn:hover {
+  color: var(--color-warning-amber);
+}
+
+.hint-content {
+  background-color: var(--bg-canvas);
+  border: 1px dashed var(--border-muted);
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.challenge-actions {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  background-color: var(--color-accent-blue);
+  color: #0d1117;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: opacity 0.1s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}

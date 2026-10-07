@@ -1,0 +1,93 @@
+.netrion-bottom-console {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  z-index: var(--z-panels);
+  transition: height 0.15s ease;
+}
+
+.netrion-bottom-console.open {
+  height: 220px;
+}
+
+.netrion-bottom-console.collapsed {
+  height: 28px;
+}
+
+.console-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 8px;
+  user-select: none;
+}
+
+.tab-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.console-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  height: 100%;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.console-tab-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.console-tab-btn.active {
+  color: var(--color-accent-blue);
+  border-bottom-color: var(--color-accent-blue);
+  background-color: var(--bg-panel);
+}
+
+.tab-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: var(--bg-canvas);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.console-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  display: flex;
+  border-radius: var(--radius-xs);
+}
+
+.console-toggle-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.console-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
