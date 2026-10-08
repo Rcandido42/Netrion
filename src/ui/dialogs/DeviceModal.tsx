@@ -43,6 +43,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   const iosRef = useRef<CiscoIOSEmulator | null>(null);
   const [cliLines, setCliLines] = useState<string[]>([]);
   const [cliInput, setCliInput] = useState<string>('');
+  const [cliPrompt, setCliPrompt] = useState<string>('Router>');
   const cliBottomRef = useRef<HTMLDivElement>(null);
   const cliInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,7 +59,9 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   useEffect(() => {
     if (device) {
       setSelectedIfaceId(device.interfaces[0]?.id || '');
-      iosRef.current = new CiscoIOSEmulator(device, engine, onUpdateDevice);
+      const ios = new CiscoIOSEmulator(device, engine, onUpdateDevice);
+      iosRef.current = ios;
+      setCliPrompt(ios.getPrompt());
       setCliLines([
         `--- System Configuration Dialog ---`,
         `% IOS (tm) Software, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)`,
@@ -108,6 +111,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     const prompt = iosRef.current.getPrompt();
     const result = iosRef.current.execute(cliInput);
     setCliLines((prev) => [...prev, `${prompt} ${cliInput}`, ...result]);
+    setCliPrompt(iosRef.current.getPrompt());
     setCliInput('');
     setTimeout(() => {
       cliBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -556,7 +560,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 ))}
                 <form onSubmit={handleCliSubmit} className="cisco-terminal-input-row">
                   <span className="cisco-prompt mono-numbers">
-                    {iosRef.current ? iosRef.current.getPrompt() : '>'}
+                    {cliPrompt}
                   </span>
                   <input
                     ref={cliInputRef}
