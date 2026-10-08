@@ -61,6 +61,42 @@
   border-color: var(--color-warning-amber);
 }
 
+.toolbar-btn.pdu-tool.active {
+  color: var(--color-arp-purple);
+  border-color: var(--color-arp-purple);
+  box-shadow: 0 0 6px rgba(188, 140, 255, 0.4);
+}
+
+.pt-mode-switch {
+  display: flex;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  height: 24px;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.mode-btn.active {
+  background-color: var(--bg-elevated);
+  color: var(--color-accent-blue);
+}
+
 .btn-label {
   font-size: var(--text-xs);
   letter-spacing: 0.02em;

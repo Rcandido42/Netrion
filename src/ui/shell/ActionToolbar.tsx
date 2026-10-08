@@ -15,19 +15,22 @@ import {
   Terminal,
   Save,
   FolderOpen,
+  Mail,
 } from 'lucide-react';
 import './ActionToolbar.css';
 
 export interface ActionToolbarProps {
   isPaused: boolean;
   simulationSpeed: number;
-  activeTool: 'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
+  simMode: 'realtime' | 'simulation';
+  activeTool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
   isConsoleOpen: boolean;
   onTogglePlay: () => void;
   onStep: () => void;
   onReset: () => void;
   onChangeSpeed: (speed: number) => void;
-  onSelectTool: (tool: 'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server') => void;
+  onToggleSimMode: (mode: 'realtime' | 'simulation') => void;
+  onSelectTool: (tool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server') => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
@@ -39,12 +42,14 @@ export interface ActionToolbarProps {
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   isPaused,
   simulationSpeed,
+  simMode,
   activeTool,
   isConsoleOpen,
   onTogglePlay,
   onStep,
   onReset,
   onChangeSpeed,
+  onToggleSimMode,
   onSelectTool,
   onZoomIn,
   onZoomOut,
@@ -179,6 +184,39 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           <Cable size={14} />
           <span className="btn-label">Connect</span>
         </button>
+
+        {/* Cisco Packet Tracer Simple PDU Tool */}
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn pdu-tool ${activeTool === 'add-pdu' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-pdu' ? 'select' : 'add-pdu')}
+          title="Add Simple PDU (Ping Envelope) [P]"
+        >
+          <Mail size={14} />
+          <span className="btn-label">Simple PDU</span>
+        </button>
+      </div>
+
+      <div className="toolbar-divider" />
+
+      {/* Packet Tracer Mode Switcher: Realtime vs Simulation */}
+      <div className="toolbar-group">
+        <div className="pt-mode-switch">
+          <button
+            type="button"
+            className={`mode-btn ${simMode === 'realtime' ? 'active' : ''}`}
+            onClick={() => onToggleSimMode('realtime')}
+          >
+            Realtime
+          </button>
+          <button
+            type="button"
+            className={`mode-btn ${simMode === 'simulation' ? 'active' : ''}`}
+            onClick={() => onToggleSimMode('simulation')}
+          >
+            Simulation
+          </button>
+        </div>
       </div>
 
       <div className="toolbar-divider" />

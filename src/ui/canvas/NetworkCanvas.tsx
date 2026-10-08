@@ -11,10 +11,12 @@ export interface NetworkCanvasProps {
   inFlightFrames: InFlightFrame[];
   selectedDeviceId: string | null;
   selectedConnectionId: string | null;
-  activeTool: 'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
+  pduSourceDeviceId?: string | null;
+  activeTool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
   zoom: number;
   connectingSource: { deviceId: string; interfaceId: string } | null;
   onSelectDevice: (deviceId: string | null) => void;
+  onOpenDeviceModal: (deviceId: string) => void;
   onSelectConnection: (connectionId: string | null) => void;
   onSelectFrame?: (frame: EthernetFrame) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
@@ -29,10 +31,12 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   inFlightFrames,
   selectedDeviceId,
   selectedConnectionId,
+  pduSourceDeviceId,
   activeTool,
   zoom,
   connectingSource,
   onSelectDevice,
+  onOpenDeviceModal,
   onSelectConnection,
   onSelectFrame,
   onMoveDevice,
@@ -202,6 +206,24 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
                   y2={coords.ty}
                   className={`cable-line ${conn.status === 'up' ? 'status-up' : 'status-down'}`}
                 />
+
+                {/* Packet Tracer Style Link Lights (Triangles/Circles) */}
+                <circle
+                  cx={coords.sx + (coords.tx - coords.sx) * 0.14}
+                  cy={coords.sy + (coords.ty - coords.sy) * 0.14}
+                  r="4"
+                  fill={conn.status === 'up' ? 'var(--color-link-up)' : 'var(--color-link-down)'}
+                  stroke="#090d12"
+                  strokeWidth="1.5"
+                />
+                <circle
+                  cx={coords.sx + (coords.tx - coords.sx) * 0.86}
+                  cy={coords.sy + (coords.ty - coords.sy) * 0.86}
+                  r="4"
+                  fill={conn.status === 'up' ? 'var(--color-link-up)' : 'var(--color-link-down)'}
+                  stroke="#090d12"
+                  strokeWidth="1.5"
+                />
               </g>
             );
           })}
@@ -262,9 +284,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           <NetworkNode
             key={device.id}
             device={device}
-            isSelected={selectedDeviceId === device.id}
-            isConnectingSource={connectingSource?.deviceId === device.id}
+            isSelected={selectedDeviceId === device.id || pduSourceDeviceId === device.id}
+            isConnectingSource={connectingSource?.deviceId === device.id || pduSourceDeviceId === device.id}
             onSelect={(_e, id) => onSelectDevice(id)}
+            onDoubleClick={(_e, id) => onOpenDeviceModal(id)}
             onMouseDown={handleNodeMouseDown}
             onPortClick={(_e, devId, ifId) => onPortClick(devId, ifId)}
           />

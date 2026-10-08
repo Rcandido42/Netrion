@@ -8,6 +8,7 @@ export interface NetworkNodeProps {
   isSelected: boolean;
   isConnectingSource: boolean;
   onSelect: (e: React.MouseEvent, deviceId: string) => void;
+  onDoubleClick?: (e: React.MouseEvent, deviceId: string) => void;
   onMouseDown: (e: React.MouseEvent, deviceId: string) => void;
   onPortClick?: (e: React.MouseEvent, deviceId: string, interfaceId: string) => void;
 }
@@ -17,6 +18,7 @@ export const NetworkNode: React.FC<NetworkNodeProps> = ({
   isSelected,
   isConnectingSource,
   onSelect,
+  onDoubleClick,
   onMouseDown,
   onPortClick,
 }) => {
@@ -49,6 +51,7 @@ export const NetworkNode: React.FC<NetworkNodeProps> = ({
         transform: `translate(${device.x}px, ${device.y}px)`,
       }}
       onClick={(e) => onSelect(e, device.id)}
+      onDoubleClick={(e) => onDoubleClick?.(e, device.id)}
       onMouseDown={(e) => onMouseDown(e, device.id)}
     >
       <div className="node-header">

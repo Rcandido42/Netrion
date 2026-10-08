@@ -1,0 +1,278 @@
+.netrion-sim-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 220px;
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.sim-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sim-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent-blue);
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.sim-led-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-link-up);
+  box-shadow: 0 0 6px var(--color-link-up);
+}
+
+.sim-playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-play-btn,
+.sim-step-btn,
+.sim-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sim-play-btn:hover,
+.sim-step-btn:hover,
+.sim-reset-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-highlight);
+}
+
+.sim-filters-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.sim-clear-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.sim-clear-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.sim-panel-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sim-event-list-section {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.user-pdu-scenario-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-canvas);
+  overflow: hidden;
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: var(--bg-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sim-table-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sim-event-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.sim-event-table th {
+  text-align: left;
+  padding: 4px 6px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.sim-event-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sim-event-row {
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.sim-event-row:hover {
+  background-color: var(--bg-elevated);
+}
+
+.sim-type-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.sim-type-badge.FRAME_TRANSMIT {
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--color-accent-blue);
+}
+
+.sim-type-badge.FRAME_ARRIVED {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--color-link-up);
+}
+
+.sim-type-badge.ARP_REQUEST,
+.sim-type-badge.ARP_REPLY {
+  background: rgba(188, 140, 255, 0.15);
+  color: var(--color-arp-purple);
+}
+
+.sim-type-badge.ICMP_ECHO_REQ,
+.sim-type-badge.ICMP_ECHO_REP {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--color-link-up);
+}
+
+.sim-table-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 24px;
+  font-size: 11px;
+}
+
+.sim-desc-cell {
+  color: var(--text-secondary);
+}
+
+.pdu-scenario-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.pdu-record-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 6px 8px;
+}
+
+.record-status-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-success {
+  color: var(--color-link-up);
+}
+
+.status-failed {
+  color: var(--color-link-down);
+}
+
+.status-pending {
+  color: var(--color-accent-blue);
+}
+
+.pdu-status-text {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pdu-status-text.successful {
+  color: var(--color-link-up);
+}
+
+.pdu-status-text.failed {
+  color: var(--color-link-down);
+}
+
+.pdu-status-text.in-progress {
+  color: var(--color-accent-blue);
+}
+
+.record-details-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.pdu-route {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.pdu-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+}

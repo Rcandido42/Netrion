@@ -15,9 +15,12 @@ import { StatusBar } from './ui/shell/StatusBar';
 import { NetworkCanvas } from './ui/canvas/NetworkCanvas';
 import { InspectorPanel } from './ui/panels/InspectorPanel';
 import { BottomConsole } from './ui/panels/BottomConsole';
+import { SimulationPanel, type UserPduRecord } from './ui/panels/SimulationPanel';
 import { ShortcutsDialog } from './ui/dialogs/ShortcutsDialog';
 import { AboutDialog } from './ui/dialogs/AboutDialog';
 import { ChallengeDialog } from './ui/dialogs/ChallengeDialog';
+import { DeviceModal } from './ui/dialogs/DeviceModal';
+import { PduModal } from './ui/dialogs/PduModal';
 import './App.css';
 
 export function App() {
@@ -33,20 +36,29 @@ export function App() {
   const [events, setEvents] = useState<SimulationEvent[]>([]);
   const [inspectedFrame, setInspectedFrame] = useState<EthernetFrame | null>(null);
 
+  // Cisco Packet Tracer Simulation vs Realtime Mode
+  const [simMode, setSimMode] = useState<'realtime' | 'simulation'>('realtime');
+  const [userPdus, setUserPdus] = useState<UserPduRecord[]>([]);
+
   // Simulation loop controls
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1);
   const [simulationTick, setSimulationTick] = useState<number>(0);
 
-  // Active Tool state
+  // Active Tool state (including Cisco Packet Tracer Simple PDU)
   const [activeTool, setActiveTool] = useState<
-    'select' | 'cable' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server'
+    'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server'
   >('select');
 
   // Selections
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [connectingSource, setConnectingSource] = useState<{ deviceId: string; interfaceId: string } | null>(null);
+  const [pduSourceDeviceId, setPduSourceDeviceId] = useState<string | null>(null);
+
+  // Modals (Cisco Device Window & OSI PDU Window)
+  const [modalDeviceId, setModalDeviceId] = useState<string | null>(null);
+  const [inspectedPduEvent, setInspectedPduEvent] = useState<SimulationEvent | null>(null);
 
   // Viewport states
   const [zoom, setZoom] = useState<number>(1);
@@ -75,14 +87,24 @@ export function App() {
     engineRef.current.updateTopology(project.devices, project.connections);
   }, [project.devices, project.connections]);
 
-  // Subscribe to engine events
+  // Subscribe to engine events and track PDU status
   useEffect(() => {
     const unsubscribe = engineRef.current.subscribe((evt) => {
-      setEvents((prev) => [...prev.slice(-150), evt]);
+      setEvents((prev) => [...prev.slice(-200), evt]);
+
       if (evt.type === 'FRAME_TRANSMIT' && evt.details) {
-        // Inspect newly transmitted frame
         const frame = engineRef.current.getInFlightFrames().find((f) => f.frame.id === evt.details?.frameId)?.frame;
         if (frame) setInspectedFrame(frame);
+      }
+
+      if (evt.type === 'ICMP_ECHO_REP') {
+        setUserPdus((prev) =>
+          prev.map((p, idx) => (idx === prev.length - 1 ? { ...p, status: 'Successful' } : p))
+        );
+      } else if (evt.type === 'FRAME_DROPPED') {
+        setUserPdus((prev) =>
+          prev.map((p, idx) => (idx === prev.length - 1 ? { ...p, status: 'Failed' } : p))
+        );
       }
     });
     return () => unsubscribe();
@@ -90,7 +112,7 @@ export function App() {
 
   // Main Simulation Loop (Tick)
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused && simMode === 'realtime') return;
 
     let lastTime = performance.now();
     let animationFrameId: number;
@@ -99,16 +121,19 @@ export function App() {
       const deltaMs = Math.min(currentTime - lastTime, 100);
       lastTime = currentTime;
 
-      engineRef.current.tick(deltaMs, simulationSpeed);
-      setInFlightFrames([...engineRef.current.getInFlightFrames()]);
-      setSimulationTick((t) => t + 1);
+      // In simulation mode, only auto-advance if not paused
+      if (!isPaused) {
+        engineRef.current.tick(deltaMs, simulationSpeed);
+        setInFlightFrames([...engineRef.current.getInFlightFrames()]);
+        setSimulationTick((t) => t + 1);
+      }
 
       animationFrameId = requestAnimationFrame(loop);
     };
 
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, simulationSpeed]);
+  }, [isPaused, simulationSpeed, simMode]);
 
   // Challenge Goal Evaluation
   useEffect(() => {
@@ -127,6 +152,74 @@ export function App() {
     setProject({ ...next });
     setIsDirty(true);
   }, []);
+
+  // Device Selection & Simple PDU Envelope Tool Flow
+  const handleSelectDevice = useCallback(
+    (deviceId: string | null) => {
+      if (!deviceId) {
+        setSelectedDeviceId(null);
+        setPduSourceDeviceId(null);
+        return;
+      }
+
+      // If user is using Cisco Simple PDU Tool (✉️)
+      if (activeTool === 'add-pdu') {
+        if (!pduSourceDeviceId) {
+          // Step 1: Clicked source device
+          setPduSourceDeviceId(deviceId);
+          setSelectedDeviceId(deviceId);
+          const dev = project.devices.find((d) => d.id === deviceId);
+          showNotification(`PDU Source: ${dev?.name || deviceId}. Click destination device.`);
+          return;
+        }
+
+        // Step 2: Clicked destination device
+        if (pduSourceDeviceId === deviceId) {
+          setPduSourceDeviceId(null);
+          showNotification('Simple PDU cancelled (cannot ping self)');
+          setActiveTool('select');
+          return;
+        }
+
+        const srcDev = project.devices.find((d) => d.id === pduSourceDeviceId);
+        const tgtDev = project.devices.find((d) => d.id === deviceId);
+
+        if (!srcDev || !tgtDev) return;
+
+        const targetIp = tgtDev.interfaces[0]?.ip;
+        if (!targetIp) {
+          showNotification(`Cannot ping ${tgtDev.name}: No IP configured on target interface!`);
+          setPduSourceDeviceId(null);
+          setActiveTool('select');
+          return;
+        }
+
+        // Send PDU Ping
+        const result = engineRef.current.ping(srcDev.id, targetIp);
+
+        const newPduRecord: UserPduRecord = {
+          id: `pdu_${Date.now()}`,
+          sourceName: srcDev.name,
+          destinationName: tgtDev.name,
+          status: result.success ? 'In Progress' : 'Failed',
+          type: 'ICMP',
+          time: new Date().toLocaleTimeString(),
+        };
+
+        setUserPdus((prev) => [...prev, newPduRecord]);
+        showNotification(`PDU dispatched: ${srcDev.name} ➔ ${tgtDev.name} (${targetIp})`);
+
+        setPduSourceDeviceId(null);
+        setActiveTool('select');
+        return;
+      }
+
+      // Normal selection
+      setSelectedDeviceId(deviceId);
+      setSelectedConnectionId(null);
+    },
+    [activeTool, pduSourceDeviceId, project.devices, showNotification]
+  );
 
   // Project IO Actions
   const handleNewProject = useCallback(() => {
@@ -211,7 +304,7 @@ export function App() {
     setSelectedDeviceId(newDevice.id);
     setSelectedConnectionId(null);
     setActiveTool('select');
-    showNotification(`Added ${newDevice.name} to network`);
+    showNotification(`Added ${newDevice.name} to workspace`);
   }, [project.devices, syncProjectChanges, showNotification]);
 
   const handleMoveDevice = useCallback((deviceId: string, x: number, y: number) => {
@@ -244,8 +337,9 @@ export function App() {
 
     syncProjectChanges({ devices: cleanedDevices, connections: remainingConnections });
     setSelectedDeviceId(null);
+    if (modalDeviceId === deviceId) setModalDeviceId(null);
     showNotification(`Deleted ${dev.name}`);
-  }, [project.devices, project.connections, syncProjectChanges, showNotification]);
+  }, [project.devices, project.connections, syncProjectChanges, modalDeviceId, showNotification]);
 
   // Connections Manipulation
   const handleUpdateConnection = useCallback((updated: SerializedConnection) => {
@@ -372,7 +466,7 @@ export function App() {
         setIsPaused((p) => !p);
         break;
       case 'step-simulation':
-        engineRef.current.tick(20, simulationSpeed);
+        engineRef.current.tick(25, simulationSpeed);
         setInFlightFrames([...engineRef.current.getInFlightFrames()]);
         setSimulationTick((t) => t + 1);
         break;
@@ -459,6 +553,10 @@ export function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewProject();
+      } else if (e.key.toLowerCase() === 'p') {
+        // Cisco Packet Tracer shortcut P: Simple PDU tool!
+        setActiveTool('add-pdu');
+        showNotification('✉️ Add Simple PDU tool active. Click source device.');
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedDeviceId) {
           e.preventDefault();
@@ -472,7 +570,7 @@ export function App() {
         setIsPaused((p) => !p);
       } else if (e.key === 'F8') {
         e.preventDefault();
-        engineRef.current.tick(20, simulationSpeed);
+        engineRef.current.tick(25, simulationSpeed);
         setInFlightFrames([...engineRef.current.getInFlightFrames()]);
         setSimulationTick((t) => t + 1);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
@@ -493,6 +591,7 @@ export function App() {
       } else if (e.key === 'Escape') {
         setActiveTool('select');
         setConnectingSource(null);
+        setPduSourceDeviceId(null);
       }
     };
 
@@ -507,9 +606,11 @@ export function App() {
     selectedDeviceId,
     selectedConnectionId,
     simulationSpeed,
+    showNotification,
   ]);
 
   const selectedDevice = project.devices.find((d) => d.id === selectedDeviceId) || null;
+  const modalDevice = project.devices.find((d) => d.id === modalDeviceId) || null;
   const selectedConnection = project.connections.find((c) => c.id === selectedConnectionId) || null;
 
   const selectedSummary = selectedDevice
@@ -533,11 +634,12 @@ export function App() {
       <ActionToolbar
         isPaused={isPaused}
         simulationSpeed={simulationSpeed}
+        simMode={simMode}
         activeTool={activeTool}
         isConsoleOpen={isConsoleOpen}
         onTogglePlay={() => setIsPaused((p) => !p)}
         onStep={() => {
-          engineRef.current.tick(20, simulationSpeed);
+          engineRef.current.tick(25, simulationSpeed);
           setInFlightFrames([...engineRef.current.getInFlightFrames()]);
           setSimulationTick((t) => t + 1);
         }}
@@ -546,9 +648,14 @@ export function App() {
           showNotification('Simulation clock reset');
         }}
         onChangeSpeed={(s) => setSimulationSpeed(s)}
+        onToggleSimMode={(m) => {
+          setSimMode(m);
+          showNotification(`Switched to ${m.toUpperCase()} mode`);
+        }}
         onSelectTool={(t) => {
           setActiveTool(t);
           if (t !== 'cable') setConnectingSource(null);
+          if (t !== 'add-pdu') setPduSourceDeviceId(null);
         }}
         onZoomIn={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))}
         onZoomOut={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}
@@ -568,13 +675,12 @@ export function App() {
             inFlightFrames={inFlightFrames}
             selectedDeviceId={selectedDeviceId}
             selectedConnectionId={selectedConnectionId}
+            pduSourceDeviceId={pduSourceDeviceId}
             activeTool={activeTool}
             zoom={zoom}
             connectingSource={connectingSource}
-            onSelectDevice={(id) => {
-              setSelectedDeviceId(id);
-              if (id) setSelectedConnectionId(null);
-            }}
+            onSelectDevice={handleSelectDevice}
+            onOpenDeviceModal={(id) => setModalDeviceId(id)}
             onSelectConnection={(id) => {
               setSelectedConnectionId(id);
               if (id) setSelectedDeviceId(null);
@@ -588,16 +694,38 @@ export function App() {
             onPortClick={handlePortClick}
           />
 
-          {/* Collapsible Bottom Console (Terminal / Event Bus / Packet Inspector) */}
-          <BottomConsole
-            isOpen={isConsoleOpen}
-            selectedDevice={selectedDevice}
-            engine={engineRef.current}
-            events={events}
-            inspectedFrame={inspectedFrame}
-            onToggleOpen={() => setIsConsoleOpen((c) => !c)}
-            onClearEvents={() => setEvents([])}
-          />
+          {/* Bottom Panel: Switches between Cisco Packet Tracer Simulation Mode and Terminal/Event Bus */}
+          {isConsoleOpen && (
+            simMode === 'simulation' ? (
+              <SimulationPanel
+                isPaused={isPaused}
+                events={events}
+                userPdus={userPdus}
+                onTogglePlay={() => setIsPaused((p) => !p)}
+                onStep={() => {
+                  engineRef.current.tick(25, simulationSpeed);
+                  setInFlightFrames([...engineRef.current.getInFlightFrames()]);
+                  setSimulationTick((t) => t + 1);
+                }}
+                onReset={() => {
+                  setSimulationTick(0);
+                  showNotification('Simulation reset');
+                }}
+                onSelectEvent={(evt) => setInspectedPduEvent(evt)}
+                onClearEvents={() => setEvents([])}
+              />
+            ) : (
+              <BottomConsole
+                isOpen={isConsoleOpen}
+                selectedDevice={selectedDevice}
+                engine={engineRef.current}
+                events={events}
+                inspectedFrame={inspectedFrame}
+                onToggleOpen={() => setIsConsoleOpen((c) => !c)}
+                onClearEvents={() => setEvents([])}
+              />
+            )
+          )}
         </div>
 
         {/* Right Inspector Panel */}
@@ -625,7 +753,19 @@ export function App() {
         statusNotification={statusNotification}
       />
 
-      {/* Modals & Dialogs */}
+      {/* Cisco Packet Tracer Modals */}
+      <DeviceModal
+        device={modalDevice}
+        engine={engineRef.current}
+        onClose={() => setModalDeviceId(null)}
+        onUpdateDevice={handleUpdateDevice}
+      />
+
+      <PduModal
+        event={inspectedPduEvent}
+        onClose={() => setInspectedPduEvent(null)}
+      />
+
       <ShortcutsDialog isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AboutDialog isOpen={showAbout} onClose={() => setShowAbout(false)} />
       <ChallengeDialog

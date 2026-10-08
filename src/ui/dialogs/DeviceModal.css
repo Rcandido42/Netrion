@@ -1,0 +1,621 @@
+.netrion-device-window {
+  width: 760px;
+  height: 540px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.device-window-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
+.window-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-brand-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-muted);
+  color: var(--color-accent-blue);
+  border-radius: var(--radius-xs);
+}
+
+.device-window-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.device-window-nav {
+  display: flex;
+  background-color: var(--bg-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 4px;
+}
+
+.dev-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.dev-nav-btn:hover {
+  color: var(--text-primary);
+}
+
+.dev-nav-btn.active {
+  color: var(--color-accent-blue);
+  border-bottom-color: var(--color-accent-blue);
+  background-color: var(--bg-panel);
+}
+
+.device-window-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ================= PHYSICAL TAB ================= */
+.physical-tab-view {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.hardware-chassis-panel {
+  background-color: #12171f;
+  border: 2px solid #232b36;
+  border-radius: var(--radius-xs);
+  padding: 14px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.chassis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1c242f;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.chassis-model {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #7d899b;
+  letter-spacing: 0.08em;
+}
+
+.chassis-power-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.power-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.1s ease;
+}
+
+.power-switch-btn.on {
+  background-color: rgba(63, 185, 80, 0.2);
+  border-color: var(--color-link-up);
+  color: var(--color-link-up);
+}
+
+.power-switch-btn.off {
+  background-color: rgba(248, 81, 73, 0.2);
+  border-color: var(--color-link-down);
+  color: var(--color-link-down);
+}
+
+.power-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.power-led.green {
+  background-color: var(--color-link-up);
+  box-shadow: 0 0 8px var(--color-link-up);
+}
+
+.power-led.off {
+  background-color: #30363d;
+}
+
+.chassis-rack-face {
+  background-color: #0b0e13;
+  border: 1px solid #1a222c;
+  padding: 14px;
+  border-radius: var(--radius-xs);
+}
+
+.rack-slots-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hardware-rj45-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background-color: #161c24;
+  border: 1px solid #232b36;
+  padding: 8px;
+  border-radius: var(--radius-xs);
+  width: 64px;
+}
+
+.slot-leds {
+  display: flex;
+  gap: 4px;
+}
+
+.led-link,
+.led-act {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.led-link.link-up {
+  background-color: var(--color-link-up);
+  box-shadow: 0 0 4px var(--color-link-up);
+}
+
+.led-act.act-active {
+  background-color: var(--color-warning-amber);
+}
+
+.led-link.down,
+.led-act.down {
+  background-color: #21262d;
+}
+
+.rj45-connector-port {
+  width: 32px;
+  height: 22px;
+  background-color: #080a0e;
+  border: 1px solid #2d3744;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connector-pin {
+  width: 16px;
+  height: 8px;
+  background-color: #1a222d;
+  border-bottom: 2px solid #58a6ff;
+}
+
+.slot-label {
+  font-size: 9px;
+  color: #7d899b;
+}
+
+.physical-specs-box {
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spec-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.spec-label {
+  color: var(--text-muted);
+}
+
+.spec-val {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ================= CONFIG TAB ================= */
+.config-tab-view {
+  flex: 1;
+  display: flex;
+}
+
+.config-sidebar-interfaces {
+  width: 170px;
+  background-color: var(--bg-canvas);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.config-sidebar-title {
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.config-iface-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.config-iface-item.active {
+  background-color: var(--bg-panel);
+  border-left-color: var(--color-accent-blue);
+  color: var(--text-primary);
+}
+
+.iface-btn-name {
+  font-size: 11px;
+}
+
+.iface-btn-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.iface-btn-tag.up {
+  color: var(--color-link-up);
+  background: rgba(63, 185, 80, 0.15);
+}
+
+.iface-btn-tag.down {
+  color: var(--color-link-down);
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.config-interface-form {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-section-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.form-input {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--border-focus);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/* ================= DESKTOP TAB ================= */
+.desktop-tab-view {
+  flex: 1;
+  background-color: #0d131a;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desktop-grid-launcher {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.desktop-icon-tile {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 90px;
+  padding: 8px;
+  border-radius: var(--radius-xs);
+  transition: background-color 0.1s ease;
+}
+
+.desktop-icon-tile:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tile-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-icon-box.ip-icon {
+  background-color: #1f3a56;
+  color: #58a6ff;
+  border: 1px solid #388bfd;
+}
+
+.tile-icon-box.cmd-icon {
+  background-color: #1e2631;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+}
+
+.tile-icon-box.web-icon {
+  background-color: #1a382b;
+  color: #3fb950;
+  border: 1px solid #238636;
+}
+
+.tile-title {
+  font-size: 11px;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.desktop-app-container {
+  flex: 1;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-xs);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.app-back-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.app-back-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-highlight);
+}
+
+.app-content-box {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pc-cmd-box {
+  flex: 1;
+  background-color: #000;
+  padding: 12px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #e6edf3;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmd-line {
+  line-height: 1.4;
+}
+
+.cmd-input-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmd-prompt {
+  color: #58a6ff;
+}
+
+.cmd-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.browser-address-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.browser-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.browser-input {
+  flex: 1;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  outline: none;
+}
+
+.browser-go-btn {
+  background-color: var(--color-accent-blue);
+  color: #0d1117;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.browser-viewport {
+  flex: 1;
+  background-color: #11161d;
+  overflow-y: auto;
+}
+
+.browser-blank {
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ================= CLI TAB ================= */
+.cli-tab-view {
+  flex: 1;
+  background-color: #06090e;
+  padding: 12px;
+  overflow-y: auto;
+  cursor: text;
+}
+
+.cisco-terminal-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #58a6ff;
+}
+
+.cisco-terminal-line {
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: #e6edf3;
+}
+
+.cisco-terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cisco-prompt {
+  color: #3fb950;
+  font-weight: 700;
+}
+
+.cisco-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
