@@ -295,8 +295,8 @@ export function App() {
   }, [showNotification]);
 
   // Topology Manipulation
-  const handleAddDevice = useCallback((type: DeviceType, x: number, y: number) => {
-    const newDevice = createDefaultDevice(type, x, y);
+  const handleAddDevice = useCallback((type: DeviceType, x: number, y: number, modelId?: string) => {
+    const newDevice = createDefaultDevice(type, x, y, undefined, modelId);
     const updatedDevices = [...project.devices, newDevice];
     syncProjectChanges({ devices: updatedDevices });
     setSelectedDeviceId(newDevice.id);
@@ -541,6 +541,22 @@ export function App() {
       return () => unsubscribe();
     }
   }, [handleMenuAction]);
+
+  // Electron live-reload notification subscription
+  useEffect(() => {
+    if (window.netrionDesktop?.onReloaded) {
+      const unsubscribe = window.netrionDesktop.onReloaded((result) => {
+        const sourceLabel =
+          result?.type === 'dev'
+            ? 'Vite Dev Server (HMR Ativo)'
+            : result?.type === 'workspace'
+            ? 'Build Live do Workspace'
+            : 'Pacote Local';
+        showNotification(`Aplicação atualizada: ${sourceLabel}`);
+      });
+      return () => unsubscribe();
+    }
+  }, [showNotification]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {

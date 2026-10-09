@@ -13,7 +13,7 @@ export interface NetworkCanvasProps {
   selectedDeviceId: string | null;
   selectedConnectionId: string | null;
   pduSourceDeviceId?: string | null;
-  activeTool: 'select' | 'cable' | 'add-pdu' | `add-${DeviceType}`;
+  activeTool: 'select' | 'cable' | 'add-pdu' | `add-${string}`;
   zoom: number;
   connectingSource: { deviceId: string; interfaceId: string } | null;
   onSelectDevice: (deviceId: string | null) => void;
@@ -21,7 +21,7 @@ export interface NetworkCanvasProps {
   onSelectConnection: (connectionId: string | null) => void;
   onSelectFrame?: (frame: EthernetFrame) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
-  onAddDevice: (type: DeviceType, x: number, y: number) => void;
+  onAddDevice: (type: DeviceType, x: number, y: number, modelId?: string) => void;
   onPortClick: (deviceId: string, interfaceId: string) => void;
   onZoomChange?: (newZoom: number) => void;
 }
@@ -82,9 +82,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
     if (e.button === 0) {
       if (activeTool.startsWith('add-') && activeTool !== 'add-pdu') {
-        const type = activeTool.replace('add-', '') as DeviceType;
+        const raw = activeTool.replace('add-', '');
+        const [devType, modelId] = raw.split(':');
         const coords = screenToCanvas(e.clientX, e.clientY);
-        onAddDevice(type, coords.x - 74, coords.y - 35); // Center device on click
+        onAddDevice(devType as DeviceType, coords.x - 74, coords.y - 35, modelId);
         return;
       }
 

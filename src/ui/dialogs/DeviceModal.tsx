@@ -211,7 +211,8 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   const isHost = device.type === 'pc' || device.type === 'laptop' || device.type === 'server' || device.type === 'printer';
   const isNetworkDevice = !isHost;
 
-  const getChassisModelName = (type: DeviceType): string => {
+  const getChassisModelName = (type: DeviceType, model?: string): string => {
+    if (model) return model;
     switch (type) {
       case 'pc': return 'WORKSTATION DESKTOP PC (INTEL CORE / 1GbE)';
       case 'laptop': return 'ENTERPRISE MOBILE LAPTOP (802.11ac / 1GbE)';
@@ -292,7 +293,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               <div className="hardware-chassis-panel">
                 <div className="chassis-header">
                   <span className="chassis-model">
-                    MODEL: {getChassisModelName(device.type)}
+                    MODEL: {getChassisModelName(device.type, device.model)}
                   </span>
                   <div className="chassis-power-section">
                     <button

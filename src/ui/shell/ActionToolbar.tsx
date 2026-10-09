@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Play,
   Pause,
@@ -23,11 +23,27 @@ import {
   FolderOpen,
   Mail,
   RefreshCw,
+  ChevronDown,
 } from 'lucide-react';
-import type { DeviceType } from '../../core/models/Device';
 import './ActionToolbar.css';
 
-export type ToolbarTool = 'select' | 'cable' | 'add-pdu' | `add-${DeviceType}`;
+export type ToolbarTool = 'select' | 'cable' | 'add-pdu' | `add-${string}`;
+
+export interface DeviceVariantDef {
+  id: string;
+  name: string;
+  modelTag: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+export interface DeviceCategoryDef {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  defaultTool: string;
+  variants: DeviceVariantDef[];
+}
 
 export interface ActionToolbarProps {
   isPaused: boolean;
@@ -70,6 +86,211 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   onQuickOpen,
   onReloadApp,
 }) => {
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const handleMouseEnter = (catId: string) => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setOpenDropdown(catId);
+  };
+
+  const handleMouseLeave = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpenDropdown(null);
+    }, 180);
+  };
+
+  const handleSelectVariant = (toolId: string) => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setOpenDropdown(null);
+    onSelectTool(toolId as ToolbarTool);
+  };
+
+  const categories: DeviceCategoryDef[] = [
+    {
+      id: 'routers',
+      label: 'Routers',
+      icon: <Share2 size={13} />,
+      defaultTool: 'add-router:2911',
+      variants: [
+        {
+          id: 'add-router:2911',
+          name: 'Cisco 2911 ISR',
+          modelTag: '3x Gi • Modular ISR',
+          description: 'Modular router with 3 Gigabit Ethernet interfaces',
+          icon: <Share2 size={14} />,
+        },
+        {
+          id: 'add-router:1941',
+          name: 'Cisco 1941 ISR',
+          modelTag: '2x Gi • Branch ISR',
+          description: 'Compact high-efficiency router with 2 Gigabit interfaces',
+          icon: <Share2 size={14} />,
+        },
+        {
+          id: 'add-router:2811',
+          name: 'Cisco 2811 Router',
+          modelTag: '2x FE • Enterprise',
+          description: 'Classic enterprise router with 2 FastEthernet interfaces',
+          icon: <Share2 size={14} />,
+        },
+        {
+          id: 'add-router:generic',
+          name: 'Generic Router Gateway',
+          modelTag: '2x Ports • Routed',
+          description: 'Standard dual-interface IP routing gateway',
+          icon: <Share2 size={14} />,
+        },
+      ],
+    },
+    {
+      id: 'switches',
+      label: 'Switches',
+      icon: <Network size={13} />,
+      defaultTool: 'add-switch:2960',
+      variants: [
+        {
+          id: 'add-switch:2960',
+          name: 'Cisco Catalyst 2960-24TT',
+          modelTag: '24 FE + 2 Gi • Layer 2',
+          description: 'Standard enterprise access switch with 24 FE + 2 Gi uplinks',
+          icon: <Network size={14} />,
+        },
+        {
+          id: 'add-switch-l3:3650',
+          name: 'Cisco Catalyst 3650-24PS',
+          modelTag: '24 Gi • Layer 3 Multilayer',
+          description: 'Core multilayer switch with IP routing & SVI support',
+          icon: <Layers size={14} />,
+        },
+        {
+          id: 'add-switch:2950',
+          name: 'Cisco Catalyst 2950-8T',
+          modelTag: '8 FE • Compact L2',
+          description: 'Compact 8-port FastEthernet switch for smaller labs',
+          icon: <Network size={14} />,
+        },
+        {
+          id: 'add-switch:generic',
+          name: 'Generic Bench Switch',
+          modelTag: '4 Ports • Basic L2',
+          description: 'Lightweight 4-port benchtop Ethernet switch',
+          icon: <Network size={14} />,
+        },
+      ],
+    },
+    {
+      id: 'endpoints',
+      label: 'End Devices',
+      icon: <Monitor size={13} />,
+      defaultTool: 'add-pc:standard',
+      variants: [
+        {
+          id: 'add-pc:standard',
+          name: 'Desktop PC',
+          modelTag: 'Workstation • 1GbE',
+          description: 'Desktop workstation with CMD, IP Config and Web Browser',
+          icon: <Monitor size={14} />,
+        },
+        {
+          id: 'add-laptop:corporate',
+          name: 'Laptop Workstation',
+          modelTag: 'Mobile PC • 802.11ac',
+          description: 'Corporate mobile laptop with Ethernet & WiFi adapter',
+          icon: <Laptop size={14} />,
+        },
+        {
+          id: 'add-server:rack',
+          name: 'Enterprise Server',
+          modelTag: 'Server 1U • HTTP/DNS',
+          description: 'Rack server hosting Web (HTTP Port 80) and DNS daemons',
+          icon: <Server size={14} />,
+        },
+        {
+          id: 'add-printer:network',
+          name: 'Network Laser Printer',
+          modelTag: 'Printer • Spooler',
+          description: 'Networked laser printer with diagnostics & test page',
+          icon: <Printer size={14} />,
+        },
+      ],
+    },
+    {
+      id: 'security',
+      label: 'Security',
+      icon: <Shield size={13} />,
+      defaultTool: 'add-firewall:asa',
+      variants: [
+        {
+          id: 'add-firewall:asa',
+          name: 'Cisco ASA 5506-X',
+          modelTag: 'Outside/Inside/DMZ',
+          description: 'Adaptive Security Appliance with dedicated security zones',
+          icon: <Shield size={14} />,
+        },
+        {
+          id: 'add-firewall:generic',
+          name: 'Generic Hardware Firewall',
+          modelTag: 'Packet Filtering',
+          description: 'Stateful packet-inspection security appliance',
+          icon: <Shield size={14} />,
+        },
+      ],
+    },
+    {
+      id: 'wireless',
+      label: 'Wireless',
+      icon: <Wifi size={13} />,
+      defaultTool: 'add-access-point:aironet',
+      variants: [
+        {
+          id: 'add-access-point:aironet',
+          name: 'Cisco Aironet 2800 AP',
+          modelTag: 'Uplink + WLAN',
+          description: 'Enterprise 802.11ac dual-band access point bridge',
+          icon: <Wifi size={14} />,
+        },
+        {
+          id: 'add-access-point:home',
+          name: 'Wireless Home Router',
+          modelTag: '1x WAN + 4x LAN',
+          description: 'Integrated WiFi broadband router with 4-port switch',
+          icon: <Wifi size={14} />,
+        },
+      ],
+    },
+    {
+      id: 'cloud',
+      label: 'WAN / Cloud',
+      icon: <Cloud size={13} />,
+      defaultTool: 'add-cloud:internet',
+      variants: [
+        {
+          id: 'add-cloud:internet',
+          name: 'Internet Cloud (ISP)',
+          modelTag: 'Multi-WAN Backbone',
+          description: 'Simulates multi-access external ISP core and Internet',
+          icon: <Cloud size={14} />,
+        },
+        {
+          id: 'add-cloud:modem',
+          name: 'Broadband Modem',
+          modelTag: 'DSL / Cable Edge',
+          description: 'Broadband termination modem linking LAN to provider',
+          icon: <Cloud size={14} />,
+        },
+      ],
+    },
+  ];
   return (
     <div className="netrion-toolbar">
       {/* File Quick Actions */}
@@ -179,112 +400,79 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Network Construction Palette: Endpoints */}
-      <div className="toolbar-group palette-group">
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-pc' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-pc' ? 'select' : 'add-pc')}
-          title="Add Desktop PC"
-        >
-          <Monitor size={13} />
-          <span className="btn-label">PC</span>
-        </button>
+      {/* Network Construction Palette: Device Categories with Flyout Menus */}
+      <div className="toolbar-group palette-group device-categories-palette">
+        {categories.map((cat) => {
+          const activeVariant = cat.variants.find((v) => v.id === activeTool);
+          const isCatActive = !!activeVariant || activeTool === cat.defaultTool;
+          const isOpen = openDropdown === cat.id;
 
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-laptop' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-laptop' ? 'select' : 'add-laptop')}
-          title="Add Laptop Workstation"
-        >
-          <Laptop size={13} />
-          <span className="btn-label">Laptop</span>
-        </button>
+          return (
+            <div
+              key={cat.id}
+              className={`category-dropdown-wrapper ${isCatActive ? 'active' : ''} ${isOpen ? 'open' : ''}`}
+              onMouseEnter={() => handleMouseEnter(cat.id)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button
+                type="button"
+                className={`toolbar-btn tool-btn category-trigger-btn ${isCatActive ? 'active' : ''}`}
+                onClick={() => {
+                  onSelectTool(isCatActive ? 'select' : (cat.defaultTool as ToolbarTool));
+                  setOpenDropdown(null);
+                }}
+                title={
+                  activeVariant
+                    ? `Selected: ${activeVariant.name} (Click to deselect, Hover for models)`
+                    : `Add ${cat.label} (Hover to choose specific hardware model)`
+                }
+                aria-label={`Select ${cat.label} model`}
+                aria-expanded={isOpen}
+              >
+                {activeVariant ? activeVariant.icon : cat.icon}
+                <span className="btn-label">{cat.label}</span>
+                <ChevronDown size={11} className={`category-chevron ${isOpen ? 'rotated' : ''}`} />
+              </button>
 
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-server' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-server' ? 'select' : 'add-server')}
-          title="Add Enterprise Server"
-        >
-          <Server size={13} />
-          <span className="btn-label">Server</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-printer' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-printer' ? 'select' : 'add-printer')}
-          title="Add Network Printer"
-        >
-          <Printer size={13} />
-          <span className="btn-label">Printer</span>
-        </button>
-      </div>
-
-      <div className="toolbar-divider" />
-
-      {/* Network Construction Palette: Infrastructure */}
-      <div className="toolbar-group palette-group">
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-switch' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-switch' ? 'select' : 'add-switch')}
-          title="Add L2 Switch"
-        >
-          <Network size={13} />
-          <span className="btn-label">Switch</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-switch-l3' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-switch-l3' ? 'select' : 'add-switch-l3')}
-          title="Add Multilayer Switch (L3 Core)"
-        >
-          <Layers size={13} />
-          <span className="btn-label">L3 Switch</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-router' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-router' ? 'select' : 'add-router')}
-          title="Add L3 Router"
-        >
-          <Share2 size={13} />
-          <span className="btn-label">Router</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-firewall' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-firewall' ? 'select' : 'add-firewall')}
-          title="Add Security Appliance / Firewall"
-        >
-          <Shield size={13} />
-          <span className="btn-label">Firewall</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-access-point' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-access-point' ? 'select' : 'add-access-point')}
-          title="Add Wireless Access Point"
-        >
-          <Wifi size={13} />
-          <span className="btn-label">AP</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-cloud' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-cloud' ? 'select' : 'add-cloud')}
-          title="Add Internet / WAN Cloud"
-        >
-          <Cloud size={13} />
-          <span className="btn-label">Internet</span>
-        </button>
+              {isOpen && (
+                <div
+                  className="device-dropdown-menu"
+                  role="menu"
+                  onMouseEnter={() => handleMouseEnter(cat.id)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <div className="dropdown-header">
+                    <span className="dropdown-title">SELECT {cat.label.toUpperCase()}</span>
+                    <span className="dropdown-count mono-numbers">{cat.variants.length} Models</span>
+                  </div>
+                  <div className="dropdown-list">
+                    {cat.variants.map((variant) => {
+                      const isSelected = activeTool === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          className={`dropdown-variant-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelectVariant(variant.id)}
+                          role="menuitem"
+                        >
+                          <div className="variant-icon-box">{variant.icon}</div>
+                          <div className="variant-info">
+                            <div className="variant-name-row">
+                              <span className="variant-name">{variant.name}</span>
+                              <span className="variant-badge mono-numbers">{variant.modelTag}</span>
+                            </div>
+                            <span className="variant-desc">{variant.description}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="toolbar-divider" />

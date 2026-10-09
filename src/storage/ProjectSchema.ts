@@ -29,6 +29,7 @@ export interface SerializedDevice {
     | 'firewall'
     | 'access-point'
     | 'cloud';
+  model?: string;
   x: number;
   y: number;
   interfaces: SerializedInterface[];

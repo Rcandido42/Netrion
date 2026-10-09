@@ -19,6 +19,7 @@ export interface ElectronDesktopAPI {
   }) => Promise<{ filePath: string; success: boolean } | null>;
   getAppInfo: () => Promise<{ version: string; platform: string; isDesktop: boolean }>;
   reloadApp: () => void;
+  onReloaded?: (callback: (result: { type: string; source?: string }) => void) => () => void;
   onMenuAction: (callback: (action: string) => void) => () => void;
 }
 

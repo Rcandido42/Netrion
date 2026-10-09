@@ -2,7 +2,67 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
+const http = require('http');
+
 let mainWindow = null;
+
+function checkDevServer() {
+  return new Promise((resolve) => {
+    const req = http.get('http://localhost:5173', (res) => {
+      resolve(true);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(350, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+function getWorkspaceDistPath() {
+  const candidatePaths = [
+    // 1. Direct workspace location on current system
+    'C:/Users/deepc/Desktop/projetos programação/Netrion/dist/index.html',
+    'c:/Users/deepc/Desktop/projetos programação/Netrion/dist/index.html',
+    // 2. Relative to project root if running from source
+    path.join(__dirname, '../dist/index.html'),
+    // 3. User environment variable
+    process.env.NETRION_WORKSPACE_DIST,
+  ].filter(Boolean);
+
+  for (const candidate of candidatePaths) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+async function loadAppTarget(win) {
+  if (!win) return { type: 'none' };
+  
+  // 1. Vite dev server priority (instant HMR)
+  const isDevRunning = await checkDevServer();
+  if (isDevRunning) {
+    console.log('[Netrion] Connected to Vite Dev Server (http://localhost:5173)');
+    await win.loadURL('http://localhost:5173');
+    return { type: 'dev', source: 'http://localhost:5173' };
+  }
+
+  // 2. Live workspace build priority
+  const workspaceDist = getWorkspaceDistPath();
+  if (workspaceDist && fs.existsSync(workspaceDist)) {
+    console.log('[Netrion] Loaded from live workspace build:', workspaceDist);
+    await win.loadFile(workspaceDist);
+    return { type: 'workspace', source: workspaceDist };
+  }
+
+  // 3. Packaged bundle fallback
+  const fallback = path.join(__dirname, '../dist/index.html');
+  console.log('[Netrion] Loaded from packaged bundle:', fallback);
+  await win.loadFile(fallback);
+  return { type: 'packaged', source: fallback };
+}
 
 function createWindow() {
   const iconPath = path.join(__dirname, '../public/netrion-logo.png');
@@ -23,17 +83,12 @@ function createWindow() {
     },
   });
 
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  const devUrl = 'http://localhost:5173';
-
-  if (isDev) {
-    mainWindow.loadURL(devUrl);
-    // Do not auto-open devtools to keep clean desktop look; shortcut Ctrl+Shift+I is available
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  }
-
   buildApplicationMenu();
+
+  loadAppTarget(mainWindow).catch((err) => {
+    console.error('[Netrion] Failed to load smart target, fallback to local dist:', err);
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -148,12 +203,20 @@ function buildApplicationMenu() {
         {
           label: 'Reload Application',
           accelerator: 'F5',
-          click: () => mainWindow?.webContents.reloadIgnoringCache(),
+          click: () => {
+            if (mainWindow) {
+              loadAppTarget(mainWindow).catch(() => mainWindow?.webContents.reloadIgnoringCache());
+            }
+          },
         },
         {
           label: 'Hard Reload (Clear Cache)',
           accelerator: 'CmdOrCtrl+Shift+R',
-          click: () => mainWindow?.webContents.reloadIgnoringCache(),
+          click: () => {
+            if (mainWindow) {
+              loadAppTarget(mainWindow).catch(() => mainWindow?.webContents.reloadIgnoringCache());
+            }
+          },
         },
         { type: 'separator' },
         {
@@ -262,9 +325,16 @@ ipcMain.handle('app:info', () => {
   };
 });
 
-ipcMain.on('app:reload', () => {
+ipcMain.on('app:reload', async () => {
   if (mainWindow) {
-    mainWindow.webContents.reloadIgnoringCache();
+    try {
+      const result = await loadAppTarget(mainWindow);
+      if (mainWindow.webContents) {
+        mainWindow.webContents.send('app:reloaded', result);
+      }
+    } catch {
+      mainWindow.webContents.reloadIgnoringCache();
+    }
   }
 });
 

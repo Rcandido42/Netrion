@@ -13,6 +13,7 @@
     "package:win": "npm run build && electron-packager . Netrion --platform=win32 --arch=x64 --out=release --overwrite --prune=true --ignore=\"^/(src|\\.git|\\.vscode)\"",
     "installer": "node build-installer.cjs",
     "dist": "npm run package:win && npm run installer",
+    "update:app": "node scripts/sync-app.cjs",
     "start": "electron electron/main.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
