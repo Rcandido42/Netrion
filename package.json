@@ -1,13 +1,16 @@
 {
   "name": "netrion",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Network Engineering & Cybersecurity Simulator",
+  "author": "Netrion Team",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "dev:desktop": "concurrently -k \"vite --port 5173\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "build": "tsc -b && vite build",
+    "package:win": "npm run build && electron-packager . Netrion --platform=win32 --arch=x64 --out=release --overwrite --prune=true --ignore=\"^/(src|\\.git|\\.vscode)\"",
     "start": "electron electron/main.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,6 +23,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
@@ -27,10 +31,33 @@
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
     "electron": "^44.6.0",
+    "electron-builder": "^26.15.3",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.3",
     "wait-on": "^9.5.1"
+  },
+  "build": {
+    "appId": "com.netrion.simulator",
+    "productName": "Netrion",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
