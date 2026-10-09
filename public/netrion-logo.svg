@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="crispShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Base Surface -->
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#bgGrad)" stroke="#334155" stroke-width="2" />
+
+  <!-- Technical Grid Accents -->
+  <line x1="8" y1="128" x2="248" y2="128" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+  <line x1="128" y1="8" x2="128" y2="248" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+
+  <!-- Network Links (The 'N' Topology) -->
+  <!-- Left Trunk: Node 1 to Node 2 -->
+  <line x1="76" y1="76" x2="76" y2="180" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" />
+  
+  <!-- Diagonal Route: Node 1 to Node 4 -->
+  <line x1="76" y1="76" x2="180" y2="180" stroke="#2563eb" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Right Trunk: Node 3 to Node 4 -->
+  <line x1="180" y1="76" x2="180" y2="180" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Secondary Cross-Links (Subtle mesh) -->
+  <line x1="76" y1="180" x2="180" y2="76" stroke="#475569" stroke-width="2" stroke-dasharray="3 3" opacity="0.6" />
+
+  <!-- Packet in Transit (Emerald Activity) -->
+  <circle cx="128" cy="128" r="7" fill="#10b981" stroke="#ffffff" stroke-width="2" filter="url(#crispShadow)" />
+
+  <!-- Network Topology Nodes -->
+  <!-- Node 1: Top-Left Host -->
+  <circle cx="76" cy="76" r="14" fill="#ffffff" stroke="#2563eb" stroke-width="5" filter="url(#crispShadow)" />
+  <circle cx="76" cy="76" r="4" fill="#0f172a" />
+
+  <!-- Node 2: Bottom-Left Switch -->
+  <circle cx="76" cy="180" r="14" fill="#ffffff" stroke="#2563eb" stroke-width="5" filter="url(#crispShadow)" />
+  <circle cx="76" cy="180" r="4" fill="#0f172a" />
+
+  <!-- Node 3: Top-Right Router -->
+  <circle cx="180" cy="76" r="14" fill="#ffffff" stroke="#2563eb" stroke-width="5" filter="url(#crispShadow)" />
+  <circle cx="180" cy="76" r="4" fill="#0f172a" />
+
+  <!-- Node 4: Bottom-Right Gateway -->
+  <circle cx="180" cy="180" r="14" fill="#ffffff" stroke="#2563eb" stroke-width="5" filter="url(#crispShadow)" />
+  <circle cx="180" cy="180" r="4" fill="#0f172a" />
+</svg>

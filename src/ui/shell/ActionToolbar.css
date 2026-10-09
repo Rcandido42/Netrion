@@ -1,31 +1,35 @@
 .netrion-toolbar {
   display: flex;
   align-items: center;
-  height: 38px;
+  height: 40px;
   background-color: var(--bg-panel);
-  border-bottom: 1px solid var(--border-subtle);
-  padding: 0 12px;
-  gap: 6px;
+  border-bottom: 1px solid var(--border-muted);
+  padding: 0 10px;
+  gap: 4px;
   user-select: none;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background-color: var(--border-subtle);
-  margin: 0 6px;
+  background-color: var(--border-muted);
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
 .toolbar-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-muted);
   color: var(--text-secondary);
@@ -33,10 +37,11 @@
   font-family: var(--font-sans);
   font-weight: 500;
   height: 26px;
-  padding: 0 8px;
+  padding: 0 7px;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.12s ease;
+  white-space: nowrap;
 }
 
 .toolbar-btn:hover {
@@ -46,30 +51,45 @@
 }
 
 .toolbar-btn.active {
-  background-color: var(--bg-active);
+  background-color: #eff6ff;
   color: var(--color-accent-blue);
   border-color: var(--color-accent-blue);
+  font-weight: 600;
 }
 
 .toolbar-btn.play-btn.active {
+  background-color: #f0fdf4;
   color: var(--color-link-up);
   border-color: var(--color-link-up);
 }
 
 .toolbar-btn.cable-tool.active {
+  background-color: #fefce8;
   color: var(--color-warning-amber);
   border-color: var(--color-warning-amber);
 }
 
 .toolbar-btn.pdu-tool.active {
+  background-color: #faf5ff;
   color: var(--color-arp-purple);
   border-color: var(--color-arp-purple);
-  box-shadow: 0 0 6px rgba(188, 140, 255, 0.4);
+}
+
+.toolbar-btn.reload-btn {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-highlight);
+  color: var(--text-primary);
+}
+
+.toolbar-btn.reload-btn:hover {
+  background-color: #eff6ff;
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
 }
 
 .pt-mode-switch {
   display: flex;
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-muted);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -93,18 +113,19 @@
 }
 
 .mode-btn.active {
-  background-color: var(--bg-elevated);
+  background-color: #ffffff;
   color: var(--color-accent-blue);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-label {
   font-size: var(--text-xs);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .speed-selector {
   display: flex;
-  background: var(--bg-canvas);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-muted);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -127,7 +148,7 @@
 }
 
 .speed-btn.active {
-  background: var(--border-muted);
+  background: #ffffff;
   color: var(--color-accent-blue);
   font-weight: bold;
 }

@@ -4,7 +4,7 @@
   background-color: var(--bg-panel);
   border: 1px solid var(--border-highlight);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;

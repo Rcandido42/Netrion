@@ -18,7 +18,17 @@ export interface SerializedInterface {
 export interface SerializedDevice {
   id: string;
   name: string;
-  type: 'pc' | 'switch' | 'router' | 'server';
+  type:
+    | 'pc'
+    | 'laptop'
+    | 'server'
+    | 'printer'
+    | 'switch'
+    | 'switch-l3'
+    | 'router'
+    | 'firewall'
+    | 'access-point'
+    | 'cloud';
   x: number;
   y: number;
   interfaces: SerializedInterface[];
@@ -32,6 +42,8 @@ export interface SerializedDevice {
   }>;
   macTable?: Array<{ mac: string; portId: string; timestamp: number }>;
 }
+
+export type DeviceType = SerializedDevice['type'];
 
 export interface SerializedConnection {
   id: string;

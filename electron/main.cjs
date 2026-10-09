@@ -5,13 +5,15 @@ const fs = require('fs');
 let mainWindow = null;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../public/netrion-logo.png');
   mainWindow = new BrowserWindow({
     width: 1360,
     height: 860,
     minWidth: 1024,
     minHeight: 640,
     title: 'Netrion - Network Engineering & Cybersecurity Simulator',
-    backgroundColor: '#0a0d12',
+    backgroundColor: '#f8fafc',
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -144,6 +146,17 @@ function buildApplicationMenu() {
       label: 'View',
       submenu: [
         {
+          label: 'Reload Application',
+          accelerator: 'F5',
+          click: () => mainWindow?.webContents.reloadIgnoringCache(),
+        },
+        {
+          label: 'Hard Reload (Clear Cache)',
+          accelerator: 'CmdOrCtrl+Shift+R',
+          click: () => mainWindow?.webContents.reloadIgnoringCache(),
+        },
+        { type: 'separator' },
+        {
           label: 'Zoom In',
           accelerator: 'CmdOrCtrl+=',
           click: () => mainWindow?.webContents.send('menu:action', 'zoom-in'),
@@ -247,6 +260,12 @@ ipcMain.handle('app:info', () => {
     platform: process.platform,
     isDesktop: true,
   };
+});
+
+ipcMain.on('app:reload', () => {
+  if (mainWindow) {
+    mainWindow.webContents.reloadIgnoringCache();
+  }
 });
 
 app.whenReady().then(() => {

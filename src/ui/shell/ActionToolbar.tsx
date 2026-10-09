@@ -5,9 +5,15 @@ import {
   SkipForward,
   RotateCcw,
   Monitor,
-  Network,
-  Share2,
+  Laptop,
   Server,
+  Printer,
+  Network,
+  Layers,
+  Share2,
+  Shield,
+  Wifi,
+  Cloud,
   Cable,
   ZoomIn,
   ZoomOut,
@@ -16,27 +22,32 @@ import {
   Save,
   FolderOpen,
   Mail,
+  RefreshCw,
 } from 'lucide-react';
+import type { DeviceType } from '../../core/models/Device';
 import './ActionToolbar.css';
+
+export type ToolbarTool = 'select' | 'cable' | 'add-pdu' | `add-${DeviceType}`;
 
 export interface ActionToolbarProps {
   isPaused: boolean;
   simulationSpeed: number;
   simMode: 'realtime' | 'simulation';
-  activeTool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
+  activeTool: ToolbarTool;
   isConsoleOpen: boolean;
   onTogglePlay: () => void;
   onStep: () => void;
   onReset: () => void;
   onChangeSpeed: (speed: number) => void;
   onToggleSimMode: (mode: 'realtime' | 'simulation') => void;
-  onSelectTool: (tool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server') => void;
+  onSelectTool: (tool: ToolbarTool) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
   onToggleConsole: () => void;
   onQuickSave: () => void;
   onQuickOpen: () => void;
+  onReloadApp?: () => void;
 }
 
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -57,6 +68,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   onToggleConsole,
   onQuickSave,
   onQuickOpen,
+  onReloadApp,
 }) => {
   return (
     <div className="netrion-toolbar">
@@ -69,7 +81,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           onClick={onQuickOpen}
           aria-label="Open Project"
         >
-          <FolderOpen size={14} />
+          <FolderOpen size={13} />
         </button>
         <button
           type="button"
@@ -78,8 +90,20 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           onClick={onQuickSave}
           aria-label="Save Project"
         >
-          <Save size={14} />
+          <Save size={13} />
         </button>
+        {onReloadApp && (
+          <button
+            type="button"
+            className="toolbar-btn reload-btn"
+            title="Recarregar Aplicação (F5) - Atualiza código sem reinstalar"
+            onClick={onReloadApp}
+            aria-label="Recarregar Aplicação"
+          >
+            <RefreshCw size={13} />
+            <span className="btn-label">Atualizar</span>
+          </button>
+        )}
       </div>
 
       <div className="toolbar-divider" />
@@ -93,7 +117,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title={isPaused ? 'Resume Simulation (Space)' : 'Pause Simulation (Space)'}
           aria-label={isPaused ? 'Resume Simulation' : 'Pause Simulation'}
         >
-          {isPaused ? <Play size={14} /> : <Pause size={14} />}
+          {isPaused ? <Play size={13} /> : <Pause size={13} />}
           <span className="btn-label">{isPaused ? 'RESUME' : 'PAUSE'}</span>
         </button>
 
@@ -104,7 +128,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title="Single Step Tick (F8)"
           aria-label="Step simulation"
         >
-          <SkipForward size={14} />
+          <SkipForward size={13} />
         </button>
 
         <button
@@ -114,7 +138,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title="Reset Simulation State (Ctrl+R)"
           aria-label="Reset simulation"
         >
-          <RotateCcw size={14} />
+          <RotateCcw size={13} />
         </button>
 
         <div className="speed-selector">
@@ -133,73 +157,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Network Construction Palette */}
-      <div className="toolbar-group">
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-pc' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-pc' ? 'select' : 'add-pc')}
-          title="Add PC Device"
-        >
-          <Monitor size={14} />
-          <span className="btn-label">PC</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-switch' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-switch' ? 'select' : 'add-switch')}
-          title="Add Switch (L2)"
-        >
-          <Network size={14} />
-          <span className="btn-label">Switch</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-router' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-router' ? 'select' : 'add-router')}
-          title="Add Router (L3)"
-        >
-          <Share2 size={14} />
-          <span className="btn-label">Router</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn ${activeTool === 'add-server' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-server' ? 'select' : 'add-server')}
-          title="Add Server"
-        >
-          <Server size={14} />
-          <span className="btn-label">Server</span>
-        </button>
-
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn cable-tool ${activeTool === 'cable' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'cable' ? 'select' : 'cable')}
-          title="Connect Devices with Cable"
-        >
-          <Cable size={14} />
-          <span className="btn-label">Connect</span>
-        </button>
-
-        {/* Cisco Packet Tracer Simple PDU Tool */}
-        <button
-          type="button"
-          className={`toolbar-btn tool-btn pdu-tool ${activeTool === 'add-pdu' ? 'active' : ''}`}
-          onClick={() => onSelectTool(activeTool === 'add-pdu' ? 'select' : 'add-pdu')}
-          title="Add Simple PDU (Ping Envelope) [P]"
-        >
-          <Mail size={14} />
-          <span className="btn-label">Simple PDU</span>
-        </button>
-      </div>
-
-      <div className="toolbar-divider" />
-
-      {/* Packet Tracer Mode Switcher: Realtime vs Simulation */}
+      {/* Mode Switcher: Realtime vs Simulation */}
       <div className="toolbar-group">
         <div className="pt-mode-switch">
           <button
@@ -221,6 +179,139 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
+      {/* Network Construction Palette: Endpoints */}
+      <div className="toolbar-group palette-group">
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-pc' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-pc' ? 'select' : 'add-pc')}
+          title="Add Desktop PC"
+        >
+          <Monitor size={13} />
+          <span className="btn-label">PC</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-laptop' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-laptop' ? 'select' : 'add-laptop')}
+          title="Add Laptop Workstation"
+        >
+          <Laptop size={13} />
+          <span className="btn-label">Laptop</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-server' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-server' ? 'select' : 'add-server')}
+          title="Add Enterprise Server"
+        >
+          <Server size={13} />
+          <span className="btn-label">Server</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-printer' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-printer' ? 'select' : 'add-printer')}
+          title="Add Network Printer"
+        >
+          <Printer size={13} />
+          <span className="btn-label">Printer</span>
+        </button>
+      </div>
+
+      <div className="toolbar-divider" />
+
+      {/* Network Construction Palette: Infrastructure */}
+      <div className="toolbar-group palette-group">
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-switch' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-switch' ? 'select' : 'add-switch')}
+          title="Add L2 Switch"
+        >
+          <Network size={13} />
+          <span className="btn-label">Switch</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-switch-l3' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-switch-l3' ? 'select' : 'add-switch-l3')}
+          title="Add Multilayer Switch (L3 Core)"
+        >
+          <Layers size={13} />
+          <span className="btn-label">L3 Switch</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-router' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-router' ? 'select' : 'add-router')}
+          title="Add L3 Router"
+        >
+          <Share2 size={13} />
+          <span className="btn-label">Router</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-firewall' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-firewall' ? 'select' : 'add-firewall')}
+          title="Add Security Appliance / Firewall"
+        >
+          <Shield size={13} />
+          <span className="btn-label">Firewall</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-access-point' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-access-point' ? 'select' : 'add-access-point')}
+          title="Add Wireless Access Point"
+        >
+          <Wifi size={13} />
+          <span className="btn-label">AP</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn ${activeTool === 'add-cloud' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-cloud' ? 'select' : 'add-cloud')}
+          title="Add Internet / WAN Cloud"
+        >
+          <Cloud size={13} />
+          <span className="btn-label">Internet</span>
+        </button>
+      </div>
+
+      <div className="toolbar-divider" />
+
+      {/* Connection & Diagnostics */}
+      <div className="toolbar-group">
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn cable-tool ${activeTool === 'cable' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'cable' ? 'select' : 'cable')}
+          title="Connect Devices with Cable"
+        >
+          <Cable size={13} />
+          <span className="btn-label">Connect</span>
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn tool-btn pdu-tool ${activeTool === 'add-pdu' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'add-pdu' ? 'select' : 'add-pdu')}
+          title="Add Simple PDU (Ping) [Shortcut: P]"
+        >
+          <Mail size={13} />
+          <span className="btn-label">Simple PDU</span>
+        </button>
+      </div>
+
       {/* Viewport Zoom & Console Toggles */}
       <div className="toolbar-group toolbar-right">
         <button
@@ -230,7 +321,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title="Zoom Out (Ctrl+-)"
           aria-label="Zoom out"
         >
-          <ZoomOut size={14} />
+          <ZoomOut size={13} />
         </button>
 
         <button
@@ -240,7 +331,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title="Reset Zoom 100% (Ctrl+0)"
           aria-label="Reset zoom"
         >
-          <Maximize2 size={14} />
+          <Maximize2 size={13} />
         </button>
 
         <button
@@ -250,7 +341,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           title="Zoom In (Ctrl++)"
           aria-label="Zoom in"
         >
-          <ZoomIn size={14} />
+          <ZoomIn size={13} />
         </button>
 
         <div className="toolbar-divider" />
@@ -259,10 +350,10 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           type="button"
           className={`toolbar-btn ${isConsoleOpen ? 'active' : ''}`}
           onClick={onToggleConsole}
-          title="Toggle Terminal & Event Console (Ctrl+`)"
-          aria-label="Toggle terminal and event console"
+          title="Toggle Console (Ctrl+`)"
+          aria-label="Toggle console"
         >
-          <Terminal size={14} />
+          <Terminal size={13} />
           <span className="btn-label">Console</span>
         </button>
       </div>

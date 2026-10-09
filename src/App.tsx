@@ -10,7 +10,7 @@ import {
 import type { EthernetFrame } from './core/protocols/Ethernet';
 import type { ChallengeScenario } from './challenges/types';
 import { MenuBar } from './ui/shell/MenuBar';
-import { ActionToolbar } from './ui/shell/ActionToolbar';
+import { ActionToolbar, type ToolbarTool } from './ui/shell/ActionToolbar';
 import { StatusBar } from './ui/shell/StatusBar';
 import { NetworkCanvas } from './ui/canvas/NetworkCanvas';
 import { InspectorPanel } from './ui/panels/InspectorPanel';
@@ -45,10 +45,8 @@ export function App() {
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1);
   const [simulationTick, setSimulationTick] = useState<number>(0);
 
-  // Active Tool state (including Cisco Packet Tracer Simple PDU)
-  const [activeTool, setActiveTool] = useState<
-    'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server'
-  >('select');
+  // Active Tool state (including all devices & Simple PDU)
+  const [activeTool, setActiveTool] = useState<ToolbarTool>('select');
 
   // Selections
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -141,7 +139,7 @@ export function App() {
       const passed = activeChallenge.checkSuccess(engineRef.current, project);
       if (passed) {
         setIsChallengeCompleted(true);
-        showNotification(`🎉 ${activeChallenge.title} - COMPLETED!`);
+        showNotification(`${activeChallenge.title} - COMPLETED!`);
         setShowChallenges(true);
       }
     }
@@ -502,6 +500,13 @@ export function App() {
       case 'toggle-console':
         setIsConsoleOpen((c) => !c);
         break;
+      case 'app-reload':
+        if (typeof window !== 'undefined' && window.netrionDesktop?.reloadApp) {
+          window.netrionDesktop.reloadApp();
+        } else {
+          window.location.reload();
+        }
+        break;
       case 'help-shortcuts':
         setShowShortcuts(true);
         break;
@@ -553,10 +558,17 @@ export function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewProject();
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        if (typeof window !== 'undefined' && window.netrionDesktop?.reloadApp) {
+          window.netrionDesktop.reloadApp();
+        } else {
+          window.location.reload();
+        }
       } else if (e.key.toLowerCase() === 'p') {
-        // Cisco Packet Tracer shortcut P: Simple PDU tool!
+        // Cisco Packet Tracer shortcut P: Simple PDU tool
         setActiveTool('add-pdu');
-        showNotification('✉️ Add Simple PDU tool active. Click source device.');
+        showNotification('Simple PDU tool active. Click source device.');
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedDeviceId) {
           e.preventDefault();
@@ -656,6 +668,13 @@ export function App() {
           setActiveTool(t);
           if (t !== 'cable') setConnectingSource(null);
           if (t !== 'add-pdu') setPduSourceDeviceId(null);
+        }}
+        onReloadApp={() => {
+          if (typeof window !== 'undefined' && window.netrionDesktop?.reloadApp) {
+            window.netrionDesktop.reloadApp();
+          } else {
+            window.location.reload();
+          }
         }}
         onZoomIn={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))}
         onZoomOut={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}

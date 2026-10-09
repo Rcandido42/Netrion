@@ -142,19 +142,33 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           <span className="empty-text">Select a node or connection on the canvas to inspect and configure.</span>
           <div className="quick-help-list">
             <div className="help-item">
-              <strong>PC / Server:</strong> Configures IP, subnet mask, gateway and terminal.
+              <strong>Workstations (PC / Laptop / Server / Printer):</strong> Configure IP, netmask, default gateway, CMD and diagnostics.
             </div>
             <div className="help-item">
-              <strong>Switch (L2):</strong> Manages MAC address learning table and multi-port links.
+              <strong>Switches & APs (L2 / L3 / AP):</strong> Manage CAM MAC learning tables and high-density ports.
             </div>
             <div className="help-item">
-              <strong>Router (L3):</strong> Manages routing table and multi-subnet forwarding.
+              <strong>Routing & Security (Router / Firewall / Cloud):</strong> Forward inter-subnet traffic and gateway routing.
             </div>
           </div>
         </div>
       </aside>
     );
   }
+
+  const hasArpTable = selectedDevice.type !== 'switch' && selectedDevice.type !== 'access-point';
+  const hasRouteTable =
+    selectedDevice.type === 'router' ||
+    selectedDevice.type === 'switch-l3' ||
+    selectedDevice.type === 'firewall' ||
+    selectedDevice.type === 'cloud' ||
+    selectedDevice.type === 'pc' ||
+    selectedDevice.type === 'laptop' ||
+    selectedDevice.type === 'server';
+  const hasMacTable =
+    selectedDevice.type === 'switch' ||
+    selectedDevice.type === 'switch-l3' ||
+    selectedDevice.type === 'access-point';
 
   return (
     <aside className="netrion-inspector">
@@ -185,7 +199,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           Config
         </button>
 
-        {selectedDevice.type !== 'switch' && (
+        {hasArpTable && (
           <button
             type="button"
             className={`tab-btn ${activeTab === 'arp' ? 'active' : ''}`}
@@ -196,7 +210,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           </button>
         )}
 
-        {(selectedDevice.type === 'router' || selectedDevice.type === 'pc') && (
+        {hasRouteTable && (
           <button
             type="button"
             className={`tab-btn ${activeTab === 'routes' ? 'active' : ''}`}
@@ -207,7 +221,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           </button>
         )}
 
-        {selectedDevice.type === 'switch' && (
+        {hasMacTable && (
           <button
             type="button"
             className={`tab-btn ${activeTab === 'mac' ? 'active' : ''}`}

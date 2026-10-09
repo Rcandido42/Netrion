@@ -55,4 +55,35 @@ describe('Device and NetworkInterface models', () => {
     iface.connectedToConnectionId = 'conn_1';
     expect(iface.isConnected()).toBe(true);
   });
+
+  it('initializes expanded devices correctly with authentic ports', () => {
+    const laptop = createDefaultDevice('laptop', 0, 0);
+    expect(laptop.name).toMatch(/^Laptop-\d{2}$/);
+    expect(laptop.interfaces).toHaveLength(1);
+
+    const srv = createDefaultDevice('server', 0, 0);
+    expect(srv.name).toMatch(/^Server-\d{2}$/);
+    expect(srv.interfaces).toHaveLength(1);
+
+    const ptr = createDefaultDevice('printer', 0, 0);
+    expect(ptr.name).toMatch(/^Printer-\d{2}$/);
+    expect(ptr.interfaces).toHaveLength(1);
+
+    const swL3 = createDefaultDevice('switch-l3', 0, 0);
+    expect(swL3.name).toMatch(/^SwitchL3-\d{2}$/);
+    expect(swL3.interfaces).toHaveLength(8);
+    expect(swL3.macTable).toBeDefined();
+
+    const fw = createDefaultDevice('firewall', 0, 0);
+    expect(fw.name).toMatch(/^Firewall-\d{2}$/);
+    expect(fw.interfaces.map((i) => i.name)).toEqual(['WAN', 'LAN', 'DMZ']);
+
+    const ap = createDefaultDevice('access-point', 0, 0);
+    expect(ap.name).toMatch(/^AP-\d{2}$/);
+    expect(ap.interfaces.map((i) => i.name)).toEqual(['eth0 (Uplink)', 'wlan0']);
+
+    const cloud = createDefaultDevice('cloud', 0, 0);
+    expect(cloud.name).toMatch(/^Internet-\d{2}$/);
+    expect(cloud.interfaces.map((i) => i.name)).toEqual(['WAN-1', 'WAN-2']);
+  });
 });

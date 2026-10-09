@@ -1,5 +1,16 @@
 import React from 'react';
-import { Monitor, Network, Share2, Server } from 'lucide-react';
+import {
+  Monitor,
+  Laptop,
+  Server,
+  Printer,
+  Network,
+  Layers,
+  Share2,
+  Shield,
+  Wifi,
+  Cloud,
+} from 'lucide-react';
 import type { SerializedDevice } from '../../storage/ProjectSchema';
 import './NetworkNode.css';
 
@@ -26,17 +37,31 @@ export const NetworkNode: React.FC<NetworkNodeProps> = ({
     switch (device.type) {
       case 'pc':
         return <Monitor size={15} />;
-      case 'switch':
-        return <Network size={15} />;
-      case 'router':
-        return <Share2 size={15} />;
+      case 'laptop':
+        return <Laptop size={15} />;
       case 'server':
         return <Server size={15} />;
+      case 'printer':
+        return <Printer size={15} />;
+      case 'switch':
+        return <Network size={15} />;
+      case 'switch-l3':
+        return <Layers size={15} />;
+      case 'router':
+        return <Share2 size={15} />;
+      case 'firewall':
+        return <Shield size={15} />;
+      case 'access-point':
+        return <Wifi size={15} />;
+      case 'cloud':
+        return <Cloud size={15} />;
+      default:
+        return <Network size={15} />;
     }
   };
 
   const getSubtext = () => {
-    if (device.type === 'switch') {
+    if (device.type === 'switch' || device.type === 'switch-l3' || device.type === 'access-point') {
       const activeCount = device.interfaces.filter((i) => i.connectedToConnectionId).length;
       return `${activeCount}/${device.interfaces.length} Ports Connected`;
     }

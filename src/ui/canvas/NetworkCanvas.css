@@ -74,7 +74,6 @@
 .cable-group.selected .cable-line {
   stroke: var(--color-accent-blue);
   stroke-width: 4px;
-  filter: drop-shadow(0 0 3px rgba(88, 166, 255, 0.5));
 }
 
 .canvas-overlay-hints {
@@ -96,7 +95,7 @@
   font-size: 11px;
   padding: 4px 10px;
   border-radius: var(--radius-xs);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 .hint-pill.warning {

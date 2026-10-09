@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCw } from 'lucide-react';
 import './MenuBar.css';
 
 export interface MenuBarProps {
@@ -69,6 +70,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({ projectName, isDirty, onAction
     {
       label: 'View',
       items: [
+        { id: 'app-reload', label: 'Recarregar Aplicação', shortcut: 'F5' },
+        { id: 'sep-view-0', label: '', separator: true },
         { id: 'zoom-in', label: 'Zoom In', shortcut: 'Ctrl++' },
         { id: 'zoom-out', label: 'Zoom Out', shortcut: 'Ctrl+-' },
         { id: 'zoom-reset', label: 'Reset Zoom (100%)', shortcut: 'Ctrl+0' },
@@ -116,6 +119,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ projectName, isDirty, onAction
   return (
     <div className="netrion-menubar" ref={containerRef}>
       <div className="menubar-brand">
+        <img src="./netrion-logo.svg" alt="Netrion Logo" className="brand-logo" width="16" height="16" />
         <span className="brand-badge">NETRION</span>
         <span className="project-title">
           {projectName}
@@ -165,6 +169,15 @@ export const MenuBar: React.FC<MenuBarProps> = ({ projectName, isDirty, onAction
       </nav>
 
       <div className="menubar-extra">
+        <button
+          type="button"
+          className="menubar-reload-btn"
+          onClick={() => onAction('app-reload')}
+          title="Recarregar Aplicação (F5) - Atualiza alterações no código instantaneamente"
+        >
+          <RefreshCw size={11} />
+          <span>Atualizar</span>
+        </button>
         <span className="desktop-indicator">
           {typeof window !== 'undefined' && window.netrionDesktop ? 'DESKTOP SHELL' : 'SIMULATOR WORKSPACE'}
         </span>

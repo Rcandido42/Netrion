@@ -179,7 +179,7 @@ export class NetworkSimulationEngine {
     // =========================================================
     // LAYER 2 SWITCH PROCESSING
     // =========================================================
-    if (targetDev.type === 'switch') {
+    if (targetDev.type === 'switch' || targetDev.type === 'access-point') {
       // 1. Learn source MAC in switch CAM Table
       if (!targetDev.macTable) targetDev.macTable = [];
       const existingEntry = targetDev.macTable.find((e) => e.mac === frame.srcMac);
@@ -215,6 +215,32 @@ export class NetworkSimulationEngine {
         }
       }
       return;
+    }
+
+    // MULTILAYER SWITCH (L3 SWITCH): Switch at L2 unless addressed to switch's own L3 interface
+    if (targetDev.type === 'switch-l3') {
+      if (!targetDev.macTable) targetDev.macTable = [];
+      const existingEntry = targetDev.macTable.find((e) => e.mac === frame.srcMac);
+      if (existingEntry) {
+        existingEntry.portId = targetIface.id;
+        existingEntry.timestamp = Date.now();
+      } else {
+        targetDev.macTable.push({
+          mac: frame.srcMac,
+          portId: targetIface.id,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (frame.dstMac !== targetIface.mac && frame.dstMac !== BROADCAST_MAC) {
+        const destEntry = targetDev.macTable.find((e) => e.mac === frame.dstMac);
+        if (destEntry && destEntry.portId !== targetIface.id) {
+          this.transmitFrame(targetDev.id, destEntry.portId, frame);
+        } else {
+          this.floodSwitchFrame(targetDev, targetIface.id, frame);
+        }
+        return;
+      }
     }
 
     // =========================================================
@@ -325,8 +351,13 @@ export class NetworkSimulationEngine {
         return;
       }
 
-      // If device is a Router, forward packet
-      if (targetDev.type === 'router') {
+      // If device is a Router, Firewall, or Cloud Gateway, forward packet
+      if (
+        targetDev.type === 'router' ||
+        targetDev.type === 'firewall' ||
+        targetDev.type === 'cloud' ||
+        (targetDev.type === 'switch-l3' && targetDev.routingTable.length > 0)
+      ) {
         this.forwardRoutedPacket(targetDev, targetIface, ip);
       }
     }

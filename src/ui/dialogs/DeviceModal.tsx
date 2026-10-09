@@ -7,8 +7,10 @@ import {
   Cpu,
   Monitor,
   Terminal,
+  Printer,
+  Server as ServerIcon,
 } from 'lucide-react';
-import type { SerializedDevice } from '../../storage/ProjectSchema';
+import type { SerializedDevice, DeviceType } from '../../storage/ProjectSchema';
 import type { NetworkSimulationEngine } from '../../core/engine/NetworkSimulationEngine';
 import { CiscoIOSEmulator } from '../../core/ios/CiscoIOS';
 import './DeviceModal.css';
@@ -27,13 +29,20 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   onUpdateDevice,
 }) => {
   const [activeTab, setActiveTab] = useState<'physical' | 'config' | 'desktop' | 'cli'>('physical');
-  const [desktopApp, setDesktopApp] = useState<'launcher' | 'ipconfig' | 'cmd' | 'browser'>('launcher');
+  const [desktopApp, setDesktopApp] = useState<'launcher' | 'ipconfig' | 'cmd' | 'browser' | 'services' | 'printer'>('launcher');
 
   // Physical Tab State
   const [isPoweredOn, setIsPoweredOn] = useState<boolean>(true);
 
   // Config Tab State
   const [selectedIfaceId, setSelectedIfaceId] = useState<string>('');
+
+  // Server Services State
+  const [httpServiceEnabled, setHttpServiceEnabled] = useState<boolean>(true);
+  const [dnsServiceEnabled, setDnsServiceEnabled] = useState<boolean>(true);
+
+  // Printer State
+  const [printerLog, setPrinterLog] = useState<string>('Ready for print jobs (Paper: 250 sheets, Toner: 94%).');
 
   // Web Browser State (Desktop app)
   const [browserUrl, setBrowserUrl] = useState<string>('http://192.168.1.50');
@@ -199,7 +208,24 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     }
   };
 
-  const isHost = device.type === 'pc' || device.type === 'server';
+  const isHost = device.type === 'pc' || device.type === 'laptop' || device.type === 'server' || device.type === 'printer';
+  const isNetworkDevice = !isHost;
+
+  const getChassisModelName = (type: DeviceType): string => {
+    switch (type) {
+      case 'pc': return 'WORKSTATION DESKTOP PC (INTEL CORE / 1GbE)';
+      case 'laptop': return 'ENTERPRISE MOBILE LAPTOP (802.11ac / 1GbE)';
+      case 'server': return 'ENTERPRISE RACK SERVER 1U (XEON / DUAL GbE)';
+      case 'printer': return 'NETWORK LASER PRINTER WORKGROUP (100BASE-TX)';
+      case 'switch': return 'CISCO CATALYST 2960-24TT SWITCH (LAYER 2)';
+      case 'switch-l3': return 'CISCO CATALYST 3650 MULTILAYER SWITCH (LAYER 3)';
+      case 'router': return 'CISCO 2911 INTEGRATED SERVICES ROUTER (ISR)';
+      case 'firewall': return 'CISCO ASA 5506-X NEXT-GEN FIREWALL APPLIANCE';
+      case 'access-point': return 'CISCO AIRONET 2800 SERIES DUAL-BAND ACCESS POINT';
+      case 'cloud': return 'WAN MULTI-ACCESS CLOUD / INTERNET GATEWAY';
+      default: return 'GENERIC NETWORK EQUIPMENT';
+    }
+  };
 
   return (
     <div className="netrion-dialog-overlay" onClick={onClose}>
@@ -246,14 +272,16 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             </button>
           )}
 
-          <button
-            type="button"
-            className={`dev-nav-btn ${activeTab === 'cli' ? 'active' : ''}`}
-            onClick={() => setActiveTab('cli')}
-          >
-            <Terminal size={13} />
-            <span>{isHost ? 'Terminal' : 'CLI'}</span>
-          </button>
+          {isNetworkDevice && (
+            <button
+              type="button"
+              className={`dev-nav-btn ${activeTab === 'cli' ? 'active' : ''}`}
+              onClick={() => setActiveTab('cli')}
+            >
+              <Terminal size={13} />
+              <span>CLI</span>
+            </button>
+          )}
         </div>
 
         {/* Window Content */}
@@ -264,7 +292,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               <div className="hardware-chassis-panel">
                 <div className="chassis-header">
                   <span className="chassis-model">
-                    MODEL: {device.type === 'router' ? 'CISCO 2911 INTEGRATED SERVICES ROUTER' : device.type === 'switch' ? 'CISCO CATALYST 2960-24TT SWITCH' : 'STANDARD WORKSTATION UNIT'}
+                    MODEL: {getChassisModelName(device.type)}
                   </span>
                   <div className="chassis-power-section">
                     <button
@@ -417,32 +445,62 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     onClick={() => setDesktopApp('ipconfig')}
                   >
                     <div className="tile-icon-box ip-icon">
-                      <Settings size={28} />
+                      <Settings size={22} />
                     </div>
                     <span className="tile-title">IP Configuration</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className="desktop-icon-tile"
-                    onClick={() => setDesktopApp('cmd')}
-                  >
-                    <div className="tile-icon-box cmd-icon">
-                      <Terminal size={28} />
-                    </div>
-                    <span className="tile-title">Command Prompt</span>
-                  </button>
+                  {device.type !== 'printer' && (
+                    <button
+                      type="button"
+                      className="desktop-icon-tile"
+                      onClick={() => setDesktopApp('cmd')}
+                    >
+                      <div className="tile-icon-box cmd-icon">
+                        <Terminal size={22} />
+                      </div>
+                      <span className="tile-title">Command Prompt</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    className="desktop-icon-tile"
-                    onClick={() => setDesktopApp('browser')}
-                  >
-                    <div className="tile-icon-box web-icon">
-                      <Globe size={28} />
-                    </div>
-                    <span className="tile-title">Web Browser</span>
-                  </button>
+                  {device.type !== 'printer' && (
+                    <button
+                      type="button"
+                      className="desktop-icon-tile"
+                      onClick={() => setDesktopApp('browser')}
+                    >
+                      <div className="tile-icon-box web-icon">
+                        <Globe size={22} />
+                      </div>
+                      <span className="tile-title">Web Browser</span>
+                    </button>
+                  )}
+
+                  {device.type === 'server' && (
+                    <button
+                      type="button"
+                      className="desktop-icon-tile"
+                      onClick={() => setDesktopApp('services')}
+                    >
+                      <div className="tile-icon-box server-icon">
+                        <ServerIcon size={22} />
+                      </div>
+                      <span className="tile-title">Server Daemons</span>
+                    </button>
+                  )}
+
+                  {device.type === 'printer' && (
+                    <button
+                      type="button"
+                      className="desktop-icon-tile"
+                      onClick={() => setDesktopApp('printer')}
+                    >
+                      <div className="tile-icon-box printer-icon">
+                        <Printer size={22} />
+                      </div>
+                      <span className="tile-title">Printer Status</span>
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -543,6 +601,102 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     ) : (
                       <div className="browser-blank">Enter an IP address (e.g. http://192.168.1.50) and press Go.</div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {desktopApp === 'services' && (
+                <div className="desktop-app-container">
+                  <div className="app-window-header">
+                    <span>Server Daemon Services (HTTP & DNS)</span>
+                    <button type="button" className="app-back-btn" onClick={() => setDesktopApp('launcher')}>
+                      Back to Desktop
+                    </button>
+                  </div>
+                  <div className="app-content-box">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ padding: 12, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)', background: 'var(--bg-canvas)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)' }}>HTTP Web Server (Port 80)</span>
+                          <button
+                            type="button"
+                            className={`power-switch-btn ${httpServiceEnabled ? 'on' : 'off'}`}
+                            onClick={() => setHttpServiceEnabled(!httpServiceEnabled)}
+                          >
+                            <Power size={11} />
+                            <span>{httpServiceEnabled ? 'RUNNING' : 'STOPPED'}</span>
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          Hosts default index.html on port 80. Accessible via web browsers on connected PCs and Laptops.
+                        </div>
+                      </div>
+
+                      <div style={{ padding: 12, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)', background: 'var(--bg-canvas)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)' }}>DNS Resolution Daemon (Port 53)</span>
+                          <button
+                            type="button"
+                            className={`power-switch-btn ${dnsServiceEnabled ? 'on' : 'off'}`}
+                            onClick={() => setDnsServiceEnabled(!dnsServiceEnabled)}
+                          >
+                            <Power size={11} />
+                            <span>{dnsServiceEnabled ? 'RUNNING' : 'STOPPED'}</span>
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          Resolves hostname and domain records for local area network clients.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {desktopApp === 'printer' && (
+                <div className="desktop-app-container">
+                  <div className="app-window-header">
+                    <span>Network Printer Diagnostics & Spooler</span>
+                    <button type="button" className="app-back-btn" onClick={() => setDesktopApp('launcher')}>
+                      Back to Desktop
+                    </button>
+                  </div>
+                  <div className="app-content-box">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                        <div style={{ padding: 10, background: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)' }}>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>CONTROLLER STATUS</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-link-up)', marginTop: 4 }}>
+                            ONLINE • READY
+                          </div>
+                        </div>
+                        <div style={{ padding: 10, background: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)' }}>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>SUPPLIES STATUS</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+                            94% TONER • TRAY 1 READY
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          Print self-test diagnosis ticket to verify network controller
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => {
+                            setPrinterLog(`[${new Date().toLocaleTimeString()}] Diagnostic Test Page printed. IP: ${currentIface?.ip || 'Unset'} | MAC: ${currentIface?.mac || 'Unset'} | Gateway: ${currentIface?.gateway || 'None'}`);
+                          }}
+                        >
+                          Print Test Page
+                        </button>
+                      </div>
+
+                      <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-muted)', borderRadius: 'var(--radius-xs)', padding: 10, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', minHeight: 60 }}>
+                        {printerLog}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

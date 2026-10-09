@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { SerializedDevice, SerializedConnection } from '../../storage/ProjectSchema';
+import type { DeviceType } from '../../core/models/Device';
 import type { InFlightFrame } from '../../core/engine/NetworkSimulationEngine';
 import type { EthernetFrame } from '../../core/protocols/Ethernet';
 import { NetworkNode } from './NetworkNode';
@@ -12,7 +13,7 @@ export interface NetworkCanvasProps {
   selectedDeviceId: string | null;
   selectedConnectionId: string | null;
   pduSourceDeviceId?: string | null;
-  activeTool: 'select' | 'cable' | 'add-pdu' | 'add-pc' | 'add-switch' | 'add-router' | 'add-server';
+  activeTool: 'select' | 'cable' | 'add-pdu' | `add-${DeviceType}`;
   zoom: number;
   connectingSource: { deviceId: string; interfaceId: string } | null;
   onSelectDevice: (deviceId: string | null) => void;
@@ -20,7 +21,7 @@ export interface NetworkCanvasProps {
   onSelectConnection: (connectionId: string | null) => void;
   onSelectFrame?: (frame: EthernetFrame) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
-  onAddDevice: (type: 'pc' | 'switch' | 'router' | 'server', x: number, y: number) => void;
+  onAddDevice: (type: DeviceType, x: number, y: number) => void;
   onPortClick: (deviceId: string, interfaceId: string) => void;
   onZoomChange?: (newZoom: number) => void;
 }
@@ -80,8 +81,8 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     }
 
     if (e.button === 0) {
-      if (activeTool.startsWith('add-')) {
-        const type = activeTool.replace('add-', '') as 'pc' | 'switch' | 'router' | 'server';
+      if (activeTool.startsWith('add-') && activeTool !== 'add-pdu') {
+        const type = activeTool.replace('add-', '') as DeviceType;
         const coords = screenToCanvas(e.clientX, e.clientY);
         onAddDevice(type, coords.x - 74, coords.y - 35); // Center device on click
         return;
